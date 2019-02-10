@@ -80,7 +80,8 @@ def parseJson(json_file):
             CategoryTable(item)
             LocationCountryTable(item)
             UserTable(item)  
-            ItemTable(item)                                                          
+            ItemTable(item)  
+            BidTable(item)                                                        
 
 # Category
 Category = {}
@@ -130,9 +131,13 @@ def processSingleUser(user):
 
 # Item
 Item = {}
+ItemCategory = {}
+ItemSeller = {}
 def ItemTable(item):
     global Item
-    if item['ItemID'] not in Item:
+    global ItemCategory
+    ItemID = item['ItemID']
+    if ItemID not in Item:
         value = item['Name'] + "|"
         value += transformDollar(item['Currently']) + "|"
         value += transformDollar(item['First_Bid']) + "|"
@@ -142,18 +147,27 @@ def ItemTable(item):
         value += transformDttm(item['Ends']) + "|"
         value +=  item['Description'] if item['Description'] is not None else ""
         Item[item['ItemID']] = value
+    for c in item['Category']:
+        ItemCategory[ItemID] = Category[c]
+   
+    ItemSeller[ItemID] = item["Seller"]["UserID"]
+
 
 # Bid
-#def BidTable(item):
+ItemBid = {}
+Bid = {}
+def BidTable(item):
+    global Bid
+    global ItemBid
+    if item['Bids'] is None: return
+    for bid in item['Bids']: 
+        BidID  = len(Bid) + 1
+        element = bid['Bid']['Bidder']['UserID'] + '|'
+        element += transformDttm(bid['Bid']['Time']) + '|'
+        element += transformDollar(bid['Bid']['Amount'])
+        Bid[BidID] = element
+        ItemBid[str(BidID)] = item['ItemID']
 
-# ItemCategory
-#def ItemCategoryTable(item):
-
-# ItemSeller
-#def ItemSellerTable(item):
-
-# ItemBid
-#def ItemBidTable(item):
 
 def output():
     with open("Category.dat","w") as f:
@@ -170,7 +184,15 @@ def output():
 
     with open("Item.dat","w") as f: 
         f.write("".join(str(item_id)  + "|" + info + "\n" for item_id, info in Item.iteritems())) 
-
+    
+    with open("ItemCategory.dat","w") as f: 
+        f.write("".join(str(item_id)  + "|" + str(category_id) + "\n" for item_id, category_id in ItemCategory.iteritems())) 
+    
+    with open("ItemBid.dat","w") as f: 
+        f.write("".join(bid_id  + "|" + item_id + "\n" for bid_id, item_id in ItemBid.iteritems())) 
+    
+    with open("Bid.dat","w") as f: 
+        f.write("".join(str(bid_id)  + "|" + info + "\n" for bid_id, info in Bid.iteritems())) 
 
 """
 Loops through each json files provided on the command line and passes each file
