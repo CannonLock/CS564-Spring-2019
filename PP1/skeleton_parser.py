@@ -131,7 +131,7 @@ def processSingleUser(user):
 
 # Item
 Item = {}
-ItemCategory = {}
+ItemCategory = []
 ItemSeller = {}
 def ItemTable(item):
     global Item
@@ -148,13 +148,13 @@ def ItemTable(item):
         value +=  item['Description'] if item['Description'] is not None else ""
         Item[item['ItemID']] = value
     for c in item['Category']:
-        ItemCategory[ItemID] = Category[c]
+        ItemCategory.append(item['ItemID'] + "|" + str(Category[c]) + "\n")
    
     ItemSeller[ItemID] = item["Seller"]["UserID"]
 
 
 # Bid
-ItemBid = {}
+ItemBid = []
 Bid = {}
 def BidTable(item):
     global Bid
@@ -166,33 +166,39 @@ def BidTable(item):
         element += transformDttm(bid['Bid']['Time']) + '|'
         element += transformDollar(bid['Bid']['Amount'])
         Bid[BidID] = element
-        ItemBid[str(BidID)] = item['ItemID']
+        ItemBid.append(item['ItemID']+ "|" + str(BidID)  + "\n") 
 
 
 def output():
-    with open("Category.dat","w") as f:
+    folder = ""
+
+    with open(folder + "Category.dat","w") as f:
         f.write("".join(str(id)  + "|" + item + "\n" for item, id in Category.iteritems())) 
 
-    with open("Country.dat","w") as f: 
+    with open(folder + "Country.dat","w") as f: 
         f.write("".join(str(id)  + "|" + country + "\n" for country, id in Country.iteritems())) 
 
-    with open("Location.dat","w") as f: 
+    with open(folder + "Location.dat","w") as f: 
         f.write("".join(str(location_id)  + "|"  + location + "|" + str(country_id) + "\n" for location, (location_id, country_id) in Location.iteritems())) 
 
-    with open("User.dat","w") as f: 
+    with open(folder + "User.dat","w") as f: 
         f.write("".join(str(user_id)  + "|" + info + "\n" for user_id, info in User.iteritems()))
 
-    with open("Item.dat","w") as f: 
+    with open(folder + "Item.dat","w") as f: 
         f.write("".join(str(item_id)  + "|" + info + "\n" for item_id, info in Item.iteritems())) 
     
-    with open("ItemCategory.dat","w") as f: 
-        f.write("".join(str(item_id)  + "|" + str(category_id) + "\n" for item_id, category_id in ItemCategory.iteritems())) 
+    with open(folder + "ItemCategory.dat","w") as f: 
+        f.write("".join(ItemCategory))
     
-    with open("ItemBid.dat","w") as f: 
-        f.write("".join(bid_id  + "|" + item_id + "\n" for bid_id, item_id in ItemBid.iteritems())) 
+    with open(folder + "ItemBid.dat","w") as f: 
+        f.write("".join(ItemBid)) 
     
-    with open("Bid.dat","w") as f: 
+    with open(folder + "Bid.dat","w") as f: 
         f.write("".join(str(bid_id)  + "|" + info + "\n" for bid_id, info in Bid.iteritems())) 
+    
+    with open(folder + "ItemSeller.dat","w") as f: 
+        f.write("".join(str(item_id)  + "|" + user_id + "\n" for item_id, user_id in ItemSeller.iteritems())) 
+    
 
 """
 Loops through each json files provided on the command line and passes each file

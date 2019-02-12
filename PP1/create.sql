@@ -1,3 +1,13 @@
+DROP TABLE if exists Category;
+DROP TABLE if exists Country;
+DROP TABLE if exists Location;
+DROP TABLE if exists User;
+DROP TABLE if exists Item;
+DROP TABLE if exists ItemCategory;
+DROP TABLE if exists ItemSeller;
+DROP TABLE if exists Bid;
+DROP TABLE if exists ItemBid;
+
 CREATE TABLE Category
 (
  category_id   INT          NOT NULL UNIQUE,
@@ -5,7 +15,7 @@ CREATE TABLE Category
  PRIMARY KEY (category_id)
 );
 
-CREATE TABLE Country
+CREATE TABLE Country 
 (
  country_id   INT          NOT NULL UNIQUE,
  country_name VARCHAR(255) NOT NULL UNIQUE,
@@ -16,7 +26,7 @@ CREATE TABLE Location
 (
  location_id INT          NOT NULL UNIQUE,
  location    VARCHAR(255) NOT NULL UNIQUE,
- country_id  INT          NOT NULL,
+ country_id  INT,
  PRIMARY KEY (location_id),
  FOREIGN KEY (country_id) REFERENCES Country (country_id)
 );

@@ -1,0 +1,1 @@
+select item_id from ItemBid where bid_id = (select bid_id from Bid order by amount desc limit 1);
