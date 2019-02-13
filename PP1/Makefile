@@ -11,6 +11,3 @@ test:
 	sqlite3 ebay_data.db < query5.sql
 	sqlite3 ebay_data.db < query6.sql
 	sqlite3 ebay_data.db < query7.sql
-
-python:
-	sh runParser.sh
