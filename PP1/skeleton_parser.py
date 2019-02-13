@@ -106,14 +106,15 @@ def LocationCountryTable(item):
             
 def processSingleLocation(obj):
     if "Country" in obj and obj['Country'] not in Country:
-        Country[obj['Country']] = len(Country)+1
+        Country[obj['Country']] = len(Country) + 1
     if obj['Location'] not in Location:
-        country_id = "NULL" if "Country" not in obj else  Country[obj['Country']]
+        country_id = "NULL" if "Country" not in obj else Country[obj['Country']]
         Location[obj['Location']] = (len(Location) + 1, country_id)
 
 # User
 User = {}
 def UserTable(item): 
+    item['Seller']['Location'] = item['Location']
     processSingleUser(item['Seller'])
     if item['Bids'] is None:
         return
@@ -121,52 +122,52 @@ def UserTable(item):
         processSingleUser(bid['Bid']['Bidder'])
 
 def processSingleUser(user):
-    if user['UserID'] not in User: 
+    if user['UserID'] not in User:
         element = user['Rating']
-        if "Location" not in user: 
+        if "Location" not in user:             
             element += "|NULL"
         else:
             element += "|" + str(Location[user['Location']][0])
         User[user['UserID']] = element
 
 # Item
-Item = {}
+Item = []
 ItemCategory = []
-ItemSeller = {}
+ItemSeller = []
 def ItemTable(item):
     global Item
     global ItemCategory
-    ItemID = item['ItemID']
-    if ItemID not in Item:
-        value = item['Name'] + "|"
-        value += transformDollar(item['Currently']) + "|"
-        value += transformDollar(item['First_Bid']) + "|"
-        value += item['Number_of_Bids'] + "|"
-        value += str(Location[item['Location']][0]) + "|"
-        value += transformDttm(item['Started']) + "|"
-        value += transformDttm(item['Ends']) + "|"
-        value +=  item['Description'] if item['Description'] is not None else ""
-        Item[item['ItemID']] = value
+    item_id = item['ItemID']
+    name = item['Name'].replace('"', '""')
+    currently = transformDollar(item['Currently'])
+    buy_price = transformDollar(item['Buy_Price']) if "Buy_Price" in item else 'NULL'
+    first_bid = transformDollar(item['First_Bid'])
+    number_of_bids = item['Number_of_Bids']
+    location_id = str(Location[item['Location']][0])
+    started = transformDttm(item['Started'])
+    ends = transformDttm(item['Ends'])
+    description = item['Description'].replace('"', '""') if item['Description'] is not None else ""
+    Item.append('"' + '"|"'.join([item_id, name, currently, buy_price, first_bid, number_of_bids, location_id, started, ends, description]) + '"\n')
     for c in item['Category']:
-        ItemCategory.append(item['ItemID'] + "|" + str(Category[c]) + "\n")
+        ItemCategory.append(item['ItemID'] + "|" + str(Category[c]) + '\n')
    
-    ItemSeller[ItemID] = item["Seller"]["UserID"]
+    ItemSeller.append(item_id + "|" + item["Seller"]["UserID"] + "\n")
 
 
 # Bid
 ItemBid = []
-Bid = {}
+Bid = []
 def BidTable(item):
     global Bid
     global ItemBid
     if item['Bids'] is None: return
     for bid in item['Bids']: 
-        BidID  = len(Bid) + 1
+        bid_id  = str(len(Bid) + 1)
         element = bid['Bid']['Bidder']['UserID'] + '|'
         element += transformDttm(bid['Bid']['Time']) + '|'
         element += transformDollar(bid['Bid']['Amount'])
-        Bid[BidID] = element
-        ItemBid.append(item['ItemID']+ "|" + str(BidID)  + "\n") 
+        Bid.append(bid_id + "|" + element + "\n")
+        ItemBid.append(item['ItemID']+ "|" + bid_id  + "\n") 
 
 
 def output():
@@ -179,13 +180,14 @@ def output():
         f.write("".join(str(id)  + "|" + country + "\n" for country, id in Country.iteritems())) 
 
     with open(folder + "Location.dat","w") as f: 
-        f.write("".join(str(location_id)  + "|"  + location + "|" + str(country_id) + "\n" for location, (location_id, country_id) in Location.iteritems())) 
+        output_str = "".join(str(location_id)  + '|'  + location + '|' + str(country_id) + '\n' for location, (location_id, country_id) in Location.iteritems())
+        f.write('"' + output_str.replace('"', '""').replace('|', '"|"').replace("\n", '"\n"')[0:-1]) # replace " by ""
 
     with open(folder + "User.dat","w") as f: 
         f.write("".join(str(user_id)  + "|" + info + "\n" for user_id, info in User.iteritems()))
 
     with open(folder + "Item.dat","w") as f: 
-        f.write("".join(str(item_id)  + "|" + info + "\n" for item_id, info in Item.iteritems())) 
+        f.write("".join(Item)) 
     
     with open(folder + "ItemCategory.dat","w") as f: 
         f.write("".join(ItemCategory))
@@ -194,10 +196,10 @@ def output():
         f.write("".join(ItemBid)) 
     
     with open(folder + "Bid.dat","w") as f: 
-        f.write("".join(str(bid_id)  + "|" + info + "\n" for bid_id, info in Bid.iteritems())) 
+        f.write("".join(Bid))
     
     with open(folder + "ItemSeller.dat","w") as f: 
-        f.write("".join(str(item_id)  + "|" + user_id + "\n" for item_id, user_id in ItemSeller.iteritems())) 
+        f.write("".join(ItemSeller))
     
 
 """
@@ -213,7 +215,6 @@ def main(argv):
         if isJson(f):
             parseJson(f)
             print "Success parsing " + f
-    
     output()
 
 if __name__ == '__main__':
