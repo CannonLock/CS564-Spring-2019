@@ -42,7 +42,8 @@ CREATE TABLE Location
  FOREIGN KEY (country_id) REFERENCES Country (country_id)
 );
 -- This is a user table including all buyers and bidders present in
--- the given data. A location_id is associated with each location in -- the Location table 
+-- the given data. A location_id is associated with each location in 
+-- the Location table 
 CREATE TABLE User
 (
  user_id     VARCHAR(255) NOT NULL UNIQUE,
