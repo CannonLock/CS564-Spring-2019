@@ -22,10 +22,10 @@ with SalesTemporalCorr(AttributeName, CorrValue) AS (
     from SalesTemporal
 )
 select AttributeName,
-       CorrValue,
        case
          when CorrValue > 0 then '+'
          when CorrValue < 0 then '-'
          else '0' end
-         as CorrSign
+         as CorrSign,
+       CorrValue
 from SalesTemporalCorr;

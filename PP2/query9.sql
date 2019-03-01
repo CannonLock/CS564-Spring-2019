@@ -17,7 +17,7 @@ with StoreDeptSales(store, dept, sales) AS
        order by norm_sales desc
        limit 10
      ),
-     Top10DeptNormSalesPerMonth(dept, month, year, weeklysales) AS (
+     Top10DeptNormSalesPerMonth(dept, month, year, monthlysales) AS (
        select sales.dept,
               extract(month from sales.weekdate),
               extract(year from sales.weekdate),
@@ -29,10 +29,10 @@ with StoreDeptSales(store, dept, sales) AS
                 extract(year from sales.weekdate)
      )
 select dept,
-       month,
-       year,
-       avg(weeklysales)
-           over (partition by dept order by year, month rows 2 preceding)         as moving_average,
-       sum(weeklysales)
-           over (partition by dept order by year, month rows unbounded preceding) as cumulative_sales
+       year as yr,
+       month as mo,
+       monthlysales,
+       cast(monthlysales * 100/ sum(monthlysales) over (partition by dept) as decimal(18, 2)) as contribution,
+       cast(sum(monthlysales)
+           over (partition by dept order by year, month rows unbounded preceding) as decimal(18, 2)) as cumulative_sales
 from Top10DeptNormSalesPerMonth;
