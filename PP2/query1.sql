@@ -11,4 +11,4 @@ where sales in (select max(sales)
                 from StoreSale
                 union
                 select min(sales)
-                from StoreSale)
+                from StoreSale);

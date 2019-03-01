@@ -4,14 +4,14 @@ with StoreDeptSales(store, dept, sales) AS
          from sales
          group by store, dept
        ),
-     DeptNormSales(dept, norm_sales) AS
+     DeptNormSales(dept, normsales) AS
        (
          select dept, sum(sales / size)
          from StoreDeptSales
                 join stores on stores.store = StoreDeptSales.store
          group by dept
        )
-select dept
+select dept, normsales
 from DeptNormSales
-order by norm_sales desc
+order by normsales desc
 limit 10;

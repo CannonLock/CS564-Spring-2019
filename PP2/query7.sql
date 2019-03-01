@@ -19,4 +19,4 @@ with DepartSale(store, dept ,weeklysales) as
 select dept, avg(contribution)
 from DepartSaleContribution
 group by dept
-having count(dept) > 3
+having count(dept) > 3;

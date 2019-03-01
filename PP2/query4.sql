@@ -4,9 +4,9 @@ with MonthTypeSales(sales, month, type) AS (
          join stores on sales.store = stores.store
   group by extract(month from weekdate), stores.type
 )
-select month,
+select month                                               as months,
        type,
-       sales                                          as total_sales_per_month,
-       sales / (sum(sales) over (partition by month)) as contribution
+       sales                                               as sum,
+       sales / (sum(sales) over (partition by type)) * 100 as contribution
 from MonthTypeSales
-order by month, type
+order by type, month;

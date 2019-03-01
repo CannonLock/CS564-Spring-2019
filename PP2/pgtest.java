@@ -29,7 +29,7 @@ public class pgtest {
         int columnCount = rs.getMetaData().getColumnCount();
         for (int i = 1; i <= columnCount; i++) {
             String className = rs.getMetaData().getColumnClassName(i);
-            System.out.print(" ");
+            System.out.print("\t");
             switch (className) {
                 case "java.lang.Integer": {
                     System.out.print(rs.getInt(i));
