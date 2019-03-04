@@ -103,10 +103,8 @@ public class pgtest {
     }
 
 	private static String selectRowQuery(String query, int[] sampleRowNum) {
-		String whereString = "where rownum = " + sampleRowNum[0];
-		for(int i = 1; i < sampleRowNum.length; i++) {
-			whereString += "or rownum = " + sampleRowNum[i];
-		}
+		String sampleString = Array.toString(sampleRowNum);
+		String whereString = "where rownum in (" + sampleString.substring(1, sampleString.length() - 1) + ")";
 		return "select * from ( select Row_Number() as rownum, * from (" + query + ") s1 ) s2" + whereString + ";";
 	}
 	
