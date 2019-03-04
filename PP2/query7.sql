@@ -1,6 +1,6 @@
 with DepartSale(store,
        dept,
-       weeklysales) as (select store, dept, sum(weeklysales) as sum from sales group by (store, dept)),
+       weeklysales) as (select store, dept, sum(weeklysales) as sum from sales group by store, dept),
      StoreSale(store,
        weeklysales) as (select store, sum(weeklysales) from DepartSale group by store),
      DepartSaleContribution(store,
