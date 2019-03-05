@@ -11,10 +11,7 @@ public class pgtest {
     private static Connection conn;
     private static Scanner in = new Scanner(System.in);
 
-    /**
-     * @param args
-     * @throws Exception
-     */
+
     public static void main(String[] args) throws Exception {
         // String url =
         // "jdbc:postgresql://stampy.cs.wisc.edu/cs564instr?sslfactory=org.postgresql.ssl.NonValidatingFactory&ssl";
@@ -31,44 +28,42 @@ public class pgtest {
         String query = promptUserQuery();
         int N = getCountFromQuery(query);
         System.out.print("How many samples do you want: ");
-        do {
-			String sampleInput = in.next().toLowerCase();
-			if (sampleInput.equals("quit"))
+        while (true) {
+            String sampleInput = in.next().toLowerCase();
+            if (sampleInput.equals("quit"))
                 break;
-			
+
             n = Math.min(N, Integer.parseInt(sampleInput));
-			if(n < 1) {
-				System.out.print("Sample size input must be greater than zero, please re-enter your input: ");
-				continue;
-			}
-			
+            if (n < 1) {
+                System.out.print("Sample size input must be greater than zero, please re-enter your input: ");
+                continue;
+            }
+
             System.out.print("Please enter the seed for sampling: ");
             seed = in.nextInt();
-			
-			System.out.print("Please select output mode: (Enter table name(save in new table) / stdout(standard output))");
-			String newtName = in.next();
-			
+
+            System.out.print("Please select output mode: (Enter table name(save in new table) / stdout(standard output))");
+            String newtName = in.next();
+
             Integer[] sampleRowNum = sampleNumer(N, n, seed, selected);
             N -= n;
-			Collections.addAll(selected, sampleRowNum);
-			
-			rowQuery = selectRowQuery(query, sampleRowNum);
-			if(newtName.equals("stdout")){
-				printResultSet(getResultSetFromQuery(rowQuery));
-				System.out.println(Arrays.toString(sampleRowNum));
-			}
-			else {
-				rowQuery = saveResultSetQuery(newtName, rowQuery);
-				getResultSetFromQuery(rowQuery);
-				System.out.println("Results are saved into table: " + newtName);
-			}
-			
+            Collections.addAll(selected, sampleRowNum);
+
+            String rowQuery = QueryBuilder.selectRow(query, sampleRowNum);
+            if (newtName.equals("stdout")) {
+                ResultPrinter.print(getResultSetFromQuery(rowQuery));
+            } else {
+                rowQuery = QueryBuilder.saveResult(newtName, rowQuery);
+                getResultSetFromQuery(rowQuery);
+                System.out.println("Results are saved into table: " + newtName);
+            }
+
             if (N <= 0) {
                 System.out.println("No more samples available.");
                 break;
             }
             System.out.print("Enter the numbers of the additional samples to continue or quit to exit: ");
-        } while (true);
+        }
     }
 
     private static String promptUserQuery() {
@@ -76,42 +71,27 @@ public class pgtest {
         String line = in.nextLine().toLowerCase();
         if (line.charAt(0) == 't') {
             System.out.print("Please enter table name: ");
-            return getQueryFromTableName(in.nextLine());
-        } else if (line.charAt(0) == 'q'){
+            return QueryBuilder.selectAllFromTable(in.nextLine());
+        } else if (line.charAt(0) == 'q') {
             System.out.print("Please enter your query: ");
             return in.nextLine();
         } else {
-			System.out.print("Please re-enter a valid input!");
-			return promptUserQuery();
-		}
+            System.out.print("Please re-enter a valid input!");
+            return promptUserQuery();
+        }
     }
 
     private static Integer getCountFromQuery(String query) throws SQLException {
-        if (query.endsWith(";"))
-            query = query.substring(0, query.length() - 1);
-        ResultSet rs = getResultSetFromQuery("select count(*) from (" + query + ") orig;");
+        ResultSet rs = getResultSetFromQuery(QueryBuilder.getCount(query));
         rs.next();
         return rs.getInt(1);
     }
 
     private static ResultSet getResultSetFromQuery(String query) throws SQLException {
+        System.out.println(query);
         return conn.createStatement().executeQuery(query);
     }
 
-    private static String getQueryFromTableName(String tableName) {
-        return "select * from " + tableName + ";";
-    }
-
-	private static String selectRowQuery(String query, int[] sampleRowNum) {
-		String sampleString = Array.toString(sampleRowNum);
-		String whereString = "where rownum in (" + sampleString.substring(1, sampleString.length() - 1) + ")";
-		return "select * from ( select Row_Number() as rownum, * from (" + query + ") s1 ) s2" + whereString + ";";
-	}
-	
-	private static String saveResultSetQuery(String newtName, String query) {
-		return "insert into " + newtName + " " + query;
-	}
-	
     private static Integer[] sampleNumer(int R, int n, int seed, Set<Integer> selected) {
         Integer[] ret = new Integer[n];
         int m = 0, t = 0, N = R + selected.size();
@@ -127,8 +107,42 @@ public class pgtest {
         }
         return ret;
     }
+}
 
-    private static void printResultSet(ResultSet rs) throws SQLException {
+class QueryBuilder {
+    static String selectAllFromTable(String tableName) {
+        return "select * from " + tableName + ";";
+    }
+
+    static String saveResult(String newtName, String query) {
+        return "insert into " + newtName + " " + query;
+    }
+
+    static String selectRow(String query, Integer[] sampleRowNum) {
+        query = truncateSemicolon(query);
+        String whereClause = "where rownum in (" + IntArrayToString(sampleRowNum) + ")";
+        return "select * from ( select row_Number() over () as rownum, * from (" + query + ") s1 ) s2 " + whereClause + ";";
+    }
+
+    static String getCount(String query){
+        query = truncateSemicolon(query);
+        return "select count(*) from (" + query + ") orig;";
+    }
+
+    private static String truncateSemicolon(String query){
+        if (query.endsWith(";"))
+            return query.substring(0, query.length() - 1);
+        return query;
+    }
+
+    private static String IntArrayToString(Integer[] array){
+        String string = Arrays.toString(array);
+        return string.substring(1, string.length() - 1);
+    }
+}
+
+class ResultPrinter {
+    static void print(ResultSet rs) throws SQLException {
         printHeader(rs);
         while (rs.next())
             printRow(rs);
@@ -150,6 +164,10 @@ public class pgtest {
             switch (className) {
                 case "java.lang.Integer": {
                     System.out.print(rs.getInt(i));
+                    break;
+                }
+                case "java.lang.Long": {
+                    System.out.print(rs.getLong(i));
                     break;
                 }
                 case "java.lang.Float": {
