@@ -1,6 +1,3 @@
-
-// import com.sun.org.apache.regexp.internal.RE;
-
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -8,76 +5,55 @@ import java.sql.SQLException;
 import java.util.*;
 
 public class pgtest {
-    private static Scanner in = new Scanner(System.in);
 
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
         // String url =
         // "jdbc:postgresql://stampy.cs.wisc.edu/cs564instr?sslfactory=org.postgresql.ssl.NonValidatingFactory&ssl";
         String url = "jdbc:postgresql://localhost:5432/ShawnZhong";
         SQLExecutor.connect(url);
-        loop();
-        SQLExecutor.close();
+        while (true) {
+            try {
+                loop();
+            } catch (SQLException e) {
+                System.out.println("Invalid Query");
+            }
+        }
     }
 
     private static void loop() throws SQLException {
         Set<Integer> selected = new HashSet<>();
-
-        String query = promptUserQuery();
+        String query = Prompter.userQuery();
+        if (query == null) System.exit(0);
         int N = SQLExecutor.getCount(query);
-        System.out.print("How many samples do you want: ");
+
         while (true) {
-            String sampleInput = in.next().toLowerCase();
-            if (sampleInput.equals("quit"))
-                break;
-
-            int n = Math.min(N, Integer.parseInt(sampleInput));
-            if (n < 1) {
-                System.out.print("Sample size input must be greater than zero, please re-enter your input: ");
-                continue;
-            }
-
-            System.out.print("Please enter the seed for sampling: ");
-            int seed = in.nextInt();
-
-            System.out.print("Please select output mode: (Enter table name(save in new table) / stdout(standard output))");
-            String newtName = in.next();
+            int n = Math.min(N, Prompter.sampleSize());
+            long seed = Prompter.seed();
+            String tableName = Prompter.tableName();
 
             Integer[] sampleRowNum = sampleNumer(N, n, seed, selected);
             N -= n;
             Collections.addAll(selected, sampleRowNum);
 
             String rowQuery = QueryBuilder.selectRow(query, sampleRowNum);
-            if (newtName.equals("stdout")) {
+            if (tableName == null) {
                 ResultPrinter.print(SQLExecutor.execute(rowQuery));
             } else {
-                SQLExecutor.execute(QueryBuilder.saveResult(newtName, rowQuery));
-                System.out.println("Results are saved into table: " + newtName);
+                SQLExecutor.execute(QueryBuilder.saveResult(tableName, rowQuery));
+                System.out.println("Results are saved into table: " + tableName);
             }
 
             if (N <= 0) {
                 System.out.println("No more samples available.");
                 break;
             }
-            System.out.print("Enter the numbers of the additional samples to continue or quit to exit: ");
+            if (!Prompter.continueSample())
+                break;
         }
     }
 
-    private static String promptUserQuery() {
-        System.out.print("Please specify execution mode (Enter T (Table) / Q (Query)): ");
-        String line = in.nextLine().toLowerCase();
-        if (line.charAt(0) == 't') {
-            System.out.print("Please enter table name: ");
-            return QueryBuilder.selectAllFromTable(in.nextLine());
-        } else if (line.charAt(0) == 'q') {
-            System.out.print("Please enter your query: ");
-            return in.nextLine();
-        } else {
-            System.out.print("Please re-enter a valid input!");
-            return promptUserQuery();
-        }
-    }
 
-    private static Integer[] sampleNumer(int R, int n, int seed, Set<Integer> selected) {
+    private static Integer[] sampleNumer(int R, int n, long seed, Set<Integer> selected) {
         Integer[] ret = new Integer[n];
         int m = 0, t = 0, N = R + selected.size();
         Random rng = new Random(seed);
@@ -94,15 +70,107 @@ public class pgtest {
     }
 }
 
+class Prompter {
+    private static Scanner in = new Scanner(System.in);
+    private static long seed = 0;
+
+    static boolean continueSample() {
+        try {
+            String line = prompt("Do you want continue sampling? (Enter Y/N): ");
+            if (line.charAt(0) == 'y') {
+                return true;
+            } else if (line.charAt(0) == 'n') {
+                return false;
+            } else {
+                throw new IllegalArgumentException();
+            }
+        } catch (Exception e) {
+            System.out.println("Input invalid.");
+            return continueSample();
+        }
+    }
+
+    static String tableName() {
+        try {
+            String line = prompt("Please select output mode (Enter S (Save in new table) / O (Outout)): ");
+            if (line.charAt(0) == 's') {
+                String tableName = prompt("Please enter table name: ");
+                if (tableName.length() == 0) throw new IllegalArgumentException();
+                return QueryBuilder.selectAllFromTable(tableName);
+            } else if (line.charAt(0) == 'o') {
+                return null;
+            } else {
+                throw new IllegalArgumentException();
+            }
+        } catch (Exception e) {
+            System.out.println("Seed must be a long integer. Please re-enter your input");
+            return tableName();
+        }
+    }
+
+    static String userQuery() {
+        try {
+            String line = prompt("Please specify execution mode (Enter T (Table) / Q (Query) / E (Exit)): ");
+            if (line.charAt(0) == 't') {
+                String tableName = prompt("Please enter table name: ");
+                if (tableName.length() == 0) throw new IllegalArgumentException();
+                return QueryBuilder.selectAllFromTable(tableName);
+            } else if (line.charAt(0) == 'q') {
+                return prompt("Please enter your query: ");
+            } else if (line.equals("quit")) {
+                return null;
+            } else {
+                throw new IllegalArgumentException();
+            }
+        } catch (Exception e) {
+            System.out.println("Input invalid.");
+            return userQuery();
+        }
+    }
+
+    static int sampleSize() {
+        try {
+            String line = prompt("How many samples do you want: ");
+            int sampleSize = Integer.parseInt(line);
+            if (sampleSize <= 0) throw new IllegalArgumentException();
+            return sampleSize;
+        } catch (Exception e) {
+            System.out.println("Sample size input must be greater than zero. Please re-enter your input");
+            return sampleSize();
+        }
+    }
+
+    static long seed() {
+        String line = prompt("Do you want to set seed? (Enter Y/N): ");
+        if (line.length() == 0 || line.charAt(0) != 'y') {
+            System.out.println("Use previous seed: " + seed);
+            return seed;
+        }
+
+        while (true) {
+            try {
+                return seed = Long.parseLong(prompt("Please enter the seed for sampling: "));
+            } catch (Exception e) {
+                System.out.println("Seed must be a long integer. Please re-enter your input");
+            }
+        }
+    }
+
+    private static String prompt(String message) {
+        System.out.print(message);
+        return in.nextLine().toLowerCase();
+    }
+}
+
 class SQLExecutor {
     private static Connection conn;
 
-    static void connect(String url) throws SQLException {
-        conn = DriverManager.getConnection(url);
-    }
-
-    static void close() throws SQLException {
-        conn.close();
+    static void connect(String url) {
+        try {
+            conn = DriverManager.getConnection(url);
+        } catch (SQLException e) {
+            System.out.println("Cannot connect to " + url);
+        }
     }
 
     static Integer getCount(String query) throws SQLException {
