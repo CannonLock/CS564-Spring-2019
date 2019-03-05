@@ -170,6 +170,7 @@ class SQLExecutor {
             conn = DriverManager.getConnection(url);
         } catch (SQLException e) {
             System.out.println("Cannot connect to " + url);
+            System.exit(1);
         }
     }
 
@@ -221,8 +222,7 @@ class QueryBuilder {
 class ResultPrinter {
     static void print(ResultSet rs) throws SQLException {
         printHeader(rs);
-        while (rs.next())
-            printRow(rs);
+        while (rs.next()) printRow(rs);
     }
 
     private static void printHeader(ResultSet rs) throws SQLException {
@@ -238,25 +238,16 @@ class ResultPrinter {
         int columnCount = rs.getMetaData().getColumnCount();
         for (int i = 1; i <= columnCount; i++) {
             String className = rs.getMetaData().getColumnClassName(i);
-            switch (className) {
-                case "java.lang.Integer": {
-                    System.out.print(rs.getInt(i));
-                    break;
-                }
-                case "java.lang.Long": {
-                    System.out.print(rs.getLong(i));
-                    break;
-                }
-                case "java.lang.Float": {
-                    System.out.print(rs.getFloat(i));
-                    break;
-                }
-                case "java.sql.Date": {
-                    System.out.print(rs.getDate(i));
-                    break;
-                }
-                default:
-                    throw new IllegalStateException("Unexpected value: " + className);
+            if ("java.lang.Integer".equals(className)) {
+                System.out.print(rs.getInt(i));
+            } else if ("java.lang.Long".equals(className)) {
+                System.out.print(rs.getLong(i));
+            } else if ("java.lang.Float".equals(className)) {
+                System.out.print(rs.getFloat(i));
+            } else if ("java.sql.Date".equals(className)) {
+                System.out.print(rs.getDate(i));
+            } else {
+                throw new IllegalStateException("Unexpected value: " + className);
             }
             System.out.print("\t");
         }
