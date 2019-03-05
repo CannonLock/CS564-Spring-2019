@@ -8,39 +8,36 @@ import java.sql.SQLException;
 import java.util.*;
 
 public class pgtest {
-    private static Connection conn;
     private static Scanner in = new Scanner(System.in);
-
 
     public static void main(String[] args) throws Exception {
         // String url =
         // "jdbc:postgresql://stampy.cs.wisc.edu/cs564instr?sslfactory=org.postgresql.ssl.NonValidatingFactory&ssl";
         String url = "jdbc:postgresql://localhost:5432/ShawnZhong";
-        conn = DriverManager.getConnection(url);
+        SQLExecutor.connect(url);
         loop();
-        conn.close();
+        SQLExecutor.close();
     }
 
-    private static void loop() throws SQLException, NumberFormatException, InputMismatchException {
-        int n, seed = 0;
+    private static void loop() throws SQLException {
         Set<Integer> selected = new HashSet<>();
 
         String query = promptUserQuery();
-        int N = getCountFromQuery(query);
+        int N = SQLExecutor.getCount(query);
         System.out.print("How many samples do you want: ");
         while (true) {
             String sampleInput = in.next().toLowerCase();
             if (sampleInput.equals("quit"))
                 break;
 
-            n = Math.min(N, Integer.parseInt(sampleInput));
+            int n = Math.min(N, Integer.parseInt(sampleInput));
             if (n < 1) {
                 System.out.print("Sample size input must be greater than zero, please re-enter your input: ");
                 continue;
             }
 
             System.out.print("Please enter the seed for sampling: ");
-            seed = in.nextInt();
+            int seed = in.nextInt();
 
             System.out.print("Please select output mode: (Enter table name(save in new table) / stdout(standard output))");
             String newtName = in.next();
@@ -51,10 +48,9 @@ public class pgtest {
 
             String rowQuery = QueryBuilder.selectRow(query, sampleRowNum);
             if (newtName.equals("stdout")) {
-                ResultPrinter.print(getResultSetFromQuery(rowQuery));
+                ResultPrinter.print(SQLExecutor.execute(rowQuery));
             } else {
-                rowQuery = QueryBuilder.saveResult(newtName, rowQuery);
-                getResultSetFromQuery(rowQuery);
+                SQLExecutor.execute(QueryBuilder.saveResult(newtName, rowQuery));
                 System.out.println("Results are saved into table: " + newtName);
             }
 
@@ -81,17 +77,6 @@ public class pgtest {
         }
     }
 
-    private static Integer getCountFromQuery(String query) throws SQLException {
-        ResultSet rs = getResultSetFromQuery(QueryBuilder.getCount(query));
-        rs.next();
-        return rs.getInt(1);
-    }
-
-    private static ResultSet getResultSetFromQuery(String query) throws SQLException {
-        System.out.println(query);
-        return conn.createStatement().executeQuery(query);
-    }
-
     private static Integer[] sampleNumer(int R, int n, int seed, Set<Integer> selected) {
         Integer[] ret = new Integer[n];
         int m = 0, t = 0, N = R + selected.size();
@@ -109,6 +94,30 @@ public class pgtest {
     }
 }
 
+class SQLExecutor {
+    private static Connection conn;
+
+    static void connect(String url) throws SQLException {
+        conn = DriverManager.getConnection(url);
+    }
+
+    static void close() throws SQLException {
+        conn.close();
+    }
+
+    static Integer getCount(String query) throws SQLException {
+        ResultSet rs = execute(QueryBuilder.getCount(query));
+        rs.next();
+        return rs.getInt(1);
+    }
+
+    static ResultSet execute(String query) throws SQLException {
+        System.out.println(query);
+        return conn.createStatement().executeQuery(query);
+    }
+}
+
+
 class QueryBuilder {
     static String selectAllFromTable(String tableName) {
         return "select * from " + tableName + ";";
@@ -124,18 +133,18 @@ class QueryBuilder {
         return "select * from ( select row_Number() over () as rownum, * from (" + query + ") s1 ) s2 " + whereClause + ";";
     }
 
-    static String getCount(String query){
+    static String getCount(String query) {
         query = truncateSemicolon(query);
         return "select count(*) from (" + query + ") orig;";
     }
 
-    private static String truncateSemicolon(String query){
+    private static String truncateSemicolon(String query) {
         if (query.endsWith(";"))
             return query.substring(0, query.length() - 1);
         return query;
     }
 
-    private static String IntArrayToString(Integer[] array){
+    private static String IntArrayToString(Integer[] array) {
         String string = Arrays.toString(array);
         return string.substring(1, string.length() - 1);
     }
