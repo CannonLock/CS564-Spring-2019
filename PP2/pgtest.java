@@ -9,17 +9,17 @@ public class pgtest {
     private static List<String> tables;
 
     public static void main(String[] args) throws SQLException {
-        // String url =
-        // "jdbc:postgresql://stampy.cs.wisc.edu/cs564instr?sslfactory=org.postgresql.ssl.NonValidatingFactory&ssl";
-        String url = "jdbc:postgresql://localhost:5432/ShawnZhong";
+        String url =
+                "jdbc:postgresql://stampy.cs.wisc.edu/cs564instr?sslfactory=org.postgresql.ssl.NonValidatingFactory&ssl";
+//        String url = "jdbc:postgresql://localhost:5432/ShawnZhong";
         SQLExecutor.connect(url);
         tables = new ArrayList<>();
         while (true) {
-            // try {
-            loop();
-            // } catch (SQLException e) {
-            // System.out.println("Invalid Query");
-            // }
+            try {
+                loop();
+            } catch (SQLException e) {
+                System.out.println("Invalid Query");
+            }
         }
     }
 
@@ -40,13 +40,13 @@ public class pgtest {
             N -= n;
             Collections.addAll(selected, sampleRowNum);
 
-            SQLExecutor.executeUpdate(QueryBuilder.dropTableIfExists(tableName));
+            SQLExecutor.executeUpdate(QueryBuilder.dropTable(tableName));
             SQLExecutor.executeUpdate(QueryBuilder.sampleRowIntoTable(query, sampleRowNum, tableName));
             SQLExecutor.executeUpdate(QueryBuilder.dropRowNum(tableName));
 
-            if (tableName == null)
+            if (tableName == null) {
                 ResultPrinter.print(SQLExecutor.executeQuery(QueryBuilder.selectAllFromTable(tableName)));
-            else
+            } else
                 System.out.println("Results are saved into table: " + tableName);
 
             if (N <= 0) {
@@ -102,6 +102,7 @@ class Prompter {
                 String tableName = prompt("Please enter table name: ");
                 if (tableName.length() == 0)
                     throw new IllegalArgumentException();
+
                 return tableName;
             } else if (line.charAt(0) == 'o') {
                 return null;
@@ -176,6 +177,7 @@ class SQLExecutor {
     static void connect(String url) {
         try {
             conn = DriverManager.getConnection(url);
+            executeUpdate(QueryBuilder.setPath());
         } catch (SQLException e) {
             System.out.println("Cannot connect to " + url);
             System.exit(1);
@@ -189,43 +191,38 @@ class SQLExecutor {
     }
 
     static ResultSet executeQuery(String query) throws SQLException {
-        System.out.println(query);
+//        System.out.println(query);
         return conn.createStatement().executeQuery(query);
     }
 
     static int executeUpdate(String query) throws SQLException {
-        System.out.println(query);
+//        System.out.println(query);
         return conn.createStatement().executeUpdate(query);
     }
 }
 
 class QueryBuilder {
-    private static final String SCHEMA = "suyan";
     private static final String TMP_TABLE_NAME = "panujxvbft";
 
-    static String dropRowNum(String tableName) {
-        if (tableName == null)
-            tableName = TMP_TABLE_NAME;
-        return "alter table " + tableName + " drop column if exists rownum";
+    static String setPath() {
+        return "set search_path to public, hw2;";
     }
 
-    static String dropTableIfExists(String tableName) {
-        if (tableName == null)
-            tableName = TMP_TABLE_NAME;
-        return "drop table if exists " + tableName;
+    static String dropRowNum(String tableName) {
+        return "alter table " + preprocessTableName(tableName) + " drop column rownum;";
+    }
+
+    static String dropTable(String tableName) {
+        return "drop table if exists " + preprocessTableName(tableName) + ";";
     }
 
     static String selectAllFromTable(String tableName) {
-        if (tableName == null)
-            tableName = TMP_TABLE_NAME;
-        return "select * from " + tableName + ";";
+        return "select * from " + preprocessTableName(tableName) + ";";
     }
 
     static String sampleRowIntoTable(String query, Integer[] sampleRowNum, String tableName) {
-        if (tableName == null)
-            tableName = TMP_TABLE_NAME;
-        return "select * into " + tableName + " from " + "( select row_Number() over () as rownum, * from " + "("
-                + truncateSemicolon(query) + ") s1 " + ") s2 " + "where s2.rownum in (" + IntArrayToString(sampleRowNum)
+        return "select * into " + preprocessTableName(tableName) + " from ( select row_Number() over () as rownum, * from ("
+                + truncateSemicolon(query) + ") s1 ) s2 where s2.rownum in (" + IntArrayToString(sampleRowNum)
                 + ");";
     }
 
@@ -234,7 +231,14 @@ class QueryBuilder {
         return "select count(*) from (" + query + ") orig;";
     }
 
+    private static String preprocessTableName(String tableName) {
+        if (tableName == null)
+            tableName = TMP_TABLE_NAME;
+        return tableName;
+    }
+
     private static String truncateSemicolon(String query) {
+        query = query.trim();
         if (query.endsWith(";"))
             return query.substring(0, query.length() - 1);
         return query;
