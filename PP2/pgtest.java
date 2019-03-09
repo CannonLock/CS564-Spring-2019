@@ -10,15 +10,15 @@ public class pgtest {
 
     public static void main(String[] args) throws SQLException {
         // String url =
-        //  "jdbc:postgresql://stampy.cs.wisc.edu/cs564instr?sslfactory=org.postgresql.ssl.NonValidatingFactory&ssl";
+        // "jdbc:postgresql://stampy.cs.wisc.edu/cs564instr?sslfactory=org.postgresql.ssl.NonValidatingFactory&ssl";
         String url = "jdbc:postgresql://localhost:5432/ShawnZhong";
         SQLExecutor.connect(url);
         tables = new ArrayList<>();
         while (true) {
             // try {
-                loop();
+            loop();
             // } catch (SQLException e) {
-            //     System.out.println("Invalid Query");
+            // System.out.println("Invalid Query");
             // }
         }
     }
@@ -26,7 +26,8 @@ public class pgtest {
     private static void loop() throws SQLException {
         Set<Integer> selected = new HashSet<>();
         String query = Prompter.userQuery();
-        if (query == null) System.exit(0);
+        if (query == null)
+            System.exit(0);
         int N = SQLExecutor.getCount(query);
 
         while (true) {
@@ -39,13 +40,14 @@ public class pgtest {
             N -= n;
             Collections.addAll(selected, sampleRowNum);
 
-            String rowQuery = QueryBuilder.selectRow(query, sampleRowNum, tableName);
-            if (tableName == null) {
-                ResultPrinter.print(SQLExecutor.executeQuery(rowQuery));
-            } else {
-                SQLExecutor.executeUpdate(rowQuery);
+            SQLExecutor.executeUpdate(QueryBuilder.dropTableIfExists(tableName));
+            SQLExecutor.executeUpdate(QueryBuilder.sampleRowIntoTable(query, sampleRowNum, tableName));
+            SQLExecutor.executeUpdate(QueryBuilder.dropRowNum(tableName));
+
+            if (tableName == null)
+                ResultPrinter.print(SQLExecutor.executeQuery(QueryBuilder.selectAllFromTable(tableName)));
+            else
                 System.out.println("Results are saved into table: " + tableName);
-            }
 
             if (N <= 0) {
                 System.out.println("No more samples available.");
@@ -55,7 +57,6 @@ public class pgtest {
                 break;
         }
     }
-
 
     private static Integer[] sampleNumer(int R, int n, long seed, Set<Integer> selected) {
         Integer[] ret = new Integer[n];
@@ -99,7 +100,8 @@ class Prompter {
             String line = prompt("Please select output mode (Enter S (Save in new table) / O (Outout)): ");
             if (line.charAt(0) == 's') {
                 String tableName = prompt("Please enter table name: ");
-                if (tableName.length() == 0) throw new IllegalArgumentException();
+                if (tableName.length() == 0)
+                    throw new IllegalArgumentException();
                 return tableName;
             } else if (line.charAt(0) == 'o') {
                 return null;
@@ -117,7 +119,8 @@ class Prompter {
             String line = prompt("Please specify execution mode (Enter T (Table) / Q (Query) / E (Exit)): ");
             if (line.charAt(0) == 't') {
                 String tableName = prompt("Please enter table name: ");
-                if (tableName.length() == 0) throw new IllegalArgumentException();
+                if (tableName.length() == 0)
+                    throw new IllegalArgumentException();
                 return QueryBuilder.selectAllFromTable(tableName);
             } else if (line.charAt(0) == 'q') {
                 return prompt("Please enter your query: ");
@@ -136,7 +139,8 @@ class Prompter {
         try {
             String line = prompt("How many samples do you want: ");
             int sampleSize = Integer.parseInt(line);
-            if (sampleSize <= 0) throw new IllegalArgumentException();
+            if (sampleSize <= 0)
+                throw new IllegalArgumentException();
             return sampleSize;
         } catch (Exception e) {
             System.out.println("Sample size input must be greater than zero. Please re-enter your input");
@@ -195,22 +199,34 @@ class SQLExecutor {
     }
 }
 
-
 class QueryBuilder {
+    private static final String SCHEMA = "suyan";
+    private static final String TMP_TABLE_NAME = "panujxvbft";
 
-    public static final String SCHEMA = "suyan";
+    static String dropRowNum(String tableName) {
+        if (tableName == null)
+            tableName = TMP_TABLE_NAME;
+        return "alter table " + tableName + " drop column if exists rownum";
+    }
+
+    static String dropTableIfExists(String tableName) {
+        if (tableName == null)
+            tableName = TMP_TABLE_NAME;
+        return "drop table if exists " + tableName;
+    }
 
     static String selectAllFromTable(String tableName) {
+        if (tableName == null)
+            tableName = TMP_TABLE_NAME;
         return "select * from " + tableName + ";";
     }
 
-    static String selectRow(String query, Integer[] sampleRowNum, String newTableName) {
-        String intoClause = newTableName == null ? "" :  "into " + newTableName;
-        return "select * " + intoClause + " from " + 
-                    "( select row_Number() over () as rownum, * from " + 
-                        "(" + truncateSemicolon(query) + ") s1 "+
-                    ") s2 " +
-                 "where rownum in (" + IntArrayToString(sampleRowNum) + ");";
+    static String sampleRowIntoTable(String query, Integer[] sampleRowNum, String tableName) {
+        if (tableName == null)
+            tableName = TMP_TABLE_NAME;
+        return "select * into " + tableName + " from " + "( select row_Number() over () as rownum, * from " + "("
+                + truncateSemicolon(query) + ") s1 " + ") s2 " + "where s2.rownum in (" + IntArrayToString(sampleRowNum)
+                + ");";
     }
 
     static String getCount(String query) {
@@ -233,7 +249,8 @@ class QueryBuilder {
 class ResultPrinter {
     static void print(ResultSet rs) throws SQLException {
         printHeader(rs);
-        while (rs.next()) printRow(rs);
+        while (rs.next())
+            printRow(rs);
     }
 
     private static void printHeader(ResultSet rs) throws SQLException {
