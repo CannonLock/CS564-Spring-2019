@@ -64,7 +64,7 @@ public class pgtest {
         for (int i = 1; i <= N; i++) {
             if (selected.contains(i))
                 continue;
-            if (rng.nextDouble() * (R - t + 1) < n - m) {
+            if (rng.nextDouble() * (R - t) < n - m) {
                 ret[m] = i;
                 m++;
             }
