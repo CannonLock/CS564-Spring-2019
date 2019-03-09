@@ -6,11 +6,14 @@ import java.util.*;
 
 public class pgtest {
 
+    private static List<String> tables;
+
     public static void main(String[] args) {
         String url =
          "jdbc:postgresql://stampy.cs.wisc.edu/cs564instr?sslfactory=org.postgresql.ssl.NonValidatingFactory&ssl";
         //String url = "jdbc:postgresql://localhost:5432/ShawnZhong";
         SQLExecutor.connect(url);
+        tables = new ArrayList<>();
         while (true) {
             try {
                 loop();
@@ -30,6 +33,7 @@ public class pgtest {
             int n = Math.min(N, Prompter.sampleSize());
             long seed = Prompter.seed();
             String tableName = Prompter.tableName();
+            tables.add(tableName);
 
             Integer[] sampleRowNum = sampleNumer(N, n, seed, selected);
             N -= n;
@@ -188,12 +192,15 @@ class SQLExecutor {
 
 
 class QueryBuilder {
+
+    public static final String SCHEMA = "suyan";
+
     static String selectAllFromTable(String tableName) {
         return "select * from " + tableName + ";";
     }
 
     static String saveResult(String newtName, String query) {
-        return "create table " + newtName + " as (" + truncateSemicolon(query) + ");";
+        return "create table " + SCHEMA + "." + newtName + " as " + query;
     }
 
     static String selectRow(String query, Integer[] sampleRowNum) {
