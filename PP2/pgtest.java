@@ -8,18 +8,18 @@ public class pgtest {
 
     private static List<String> tables;
 
-    public static void main(String[] args) {
-        String url =
-         "jdbc:postgresql://stampy.cs.wisc.edu/cs564instr?sslfactory=org.postgresql.ssl.NonValidatingFactory&ssl";
-        //String url = "jdbc:postgresql://localhost:5432/ShawnZhong";
+    public static void main(String[] args) throws SQLException {
+        // String url =
+        //  "jdbc:postgresql://stampy.cs.wisc.edu/cs564instr?sslfactory=org.postgresql.ssl.NonValidatingFactory&ssl";
+        String url = "jdbc:postgresql://localhost:5432/ShawnZhong";
         SQLExecutor.connect(url);
         tables = new ArrayList<>();
         while (true) {
-            try {
+            // try {
                 loop();
-            } catch (SQLException e) {
-                System.out.println("Invalid Query");
-            }
+            // } catch (SQLException e) {
+            //     System.out.println("Invalid Query");
+            // }
         }
     }
 
@@ -39,11 +39,11 @@ public class pgtest {
             N -= n;
             Collections.addAll(selected, sampleRowNum);
 
-            String rowQuery = QueryBuilder.selectRow(query, sampleRowNum);
+            String rowQuery = QueryBuilder.selectRow(query, sampleRowNum, tableName);
             if (tableName == null) {
-                ResultPrinter.print(SQLExecutor.execute(rowQuery));
+                ResultPrinter.print(SQLExecutor.executeQuery(rowQuery));
             } else {
-                SQLExecutor.execute(QueryBuilder.saveResult(tableName, rowQuery));
+                SQLExecutor.executeUpdate(rowQuery);
                 System.out.println("Results are saved into table: " + tableName);
             }
 
@@ -179,14 +179,19 @@ class SQLExecutor {
     }
 
     static Integer getCount(String query) throws SQLException {
-        ResultSet rs = execute(QueryBuilder.getCount(query));
+        ResultSet rs = executeQuery(QueryBuilder.getCount(query));
         rs.next();
         return rs.getInt(1);
     }
 
-    static ResultSet execute(String query) throws SQLException {
+    static ResultSet executeQuery(String query) throws SQLException {
         System.out.println(query);
         return conn.createStatement().executeQuery(query);
+    }
+
+    static int executeUpdate(String query) throws SQLException {
+        System.out.println(query);
+        return conn.createStatement().executeUpdate(query);
     }
 }
 
@@ -199,14 +204,13 @@ class QueryBuilder {
         return "select * from " + tableName + ";";
     }
 
-    static String saveResult(String newtName, String query) {
-        return "create table " + SCHEMA + "." + newtName + " as " + query;
-    }
-
-    static String selectRow(String query, Integer[] sampleRowNum) {
-        query = truncateSemicolon(query);
-        String whereClause = "where rownum in (" + IntArrayToString(sampleRowNum) + ")";
-        return "select * from ( select row_Number() over () as rownum, * from (" + query + ") s1 ) s2 " + whereClause + ";";
+    static String selectRow(String query, Integer[] sampleRowNum, String newTableName) {
+        String intoClause = newTableName == null ? "" :  "into " + newTableName;
+        return "select * " + intoClause + " from " + 
+                    "( select row_Number() over () as rownum, * from " + 
+                        "(" + truncateSemicolon(query) + ") s1 "+
+                    ") s2 " +
+                 "where rownum in (" + IntArrayToString(sampleRowNum) + ");";
     }
 
     static String getCount(String query) {
