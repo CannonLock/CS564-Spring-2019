@@ -7,9 +7,9 @@ import java.util.*;
 public class pgtest {
 
     public static void main(String[] args) {
-        // String url =
-        // "jdbc:postgresql://stampy.cs.wisc.edu/cs564instr?sslfactory=org.postgresql.ssl.NonValidatingFactory&ssl";
-        String url = "jdbc:postgresql://localhost:5432/ShawnZhong";
+        String url =
+         "jdbc:postgresql://stampy.cs.wisc.edu/cs564instr?sslfactory=org.postgresql.ssl.NonValidatingFactory&ssl";
+        //String url = "jdbc:postgresql://localhost:5432/ShawnZhong";
         SQLExecutor.connect(url);
         while (true) {
             try {
@@ -96,7 +96,7 @@ class Prompter {
             if (line.charAt(0) == 's') {
                 String tableName = prompt("Please enter table name: ");
                 if (tableName.length() == 0) throw new IllegalArgumentException();
-                return QueryBuilder.selectAllFromTable(tableName);
+                return tableName;
             } else if (line.charAt(0) == 'o') {
                 return null;
             } else {
@@ -117,7 +117,7 @@ class Prompter {
                 return QueryBuilder.selectAllFromTable(tableName);
             } else if (line.charAt(0) == 'q') {
                 return prompt("Please enter your query: ");
-            } else if (line.equals("quit")) {
+            } else if (line.charAt(0) == 'e') {
                 return null;
             } else {
                 throw new IllegalArgumentException();
@@ -193,7 +193,7 @@ class QueryBuilder {
     }
 
     static String saveResult(String newtName, String query) {
-        return "insert into " + newtName + " " + query;
+        return "create table " + newtName + " as (" + truncateSemicolon(query) + ");";
     }
 
     static String selectRow(String query, Integer[] sampleRowNum) {
