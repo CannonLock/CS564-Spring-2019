@@ -49,3 +49,7 @@ select StoreFullMonthInAnyYear.store
 from StoreFullMonthInAnyYear
        join StoreDeptCount on StoreFullMonthInAnyYear.store = StoreDeptCount.store
 where StoreDeptCount.dept_count = StoreFullMonthInAnyYear.dept_count;
+
+--  store 
+-- -------
+-- (0 rows)

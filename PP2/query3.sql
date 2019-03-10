@@ -21,3 +21,8 @@ select count(*)
 from NonHolidayWeeklySales
 where NonHolidayWeeklySales.weeklysales >
       (select avg(weeklysales) from HolidayWeeklySales);
+
+--  count 
+-- -------
+--      8
+-- (1 row)

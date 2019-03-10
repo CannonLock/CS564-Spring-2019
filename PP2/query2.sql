@@ -9,3 +9,9 @@ with StoreMaxFuelPrice AS
 select store
 from StoreMaxFuelPrice
 where max_fuel_price < 4 and max_unemployment_rate > 10;
+
+--  store 
+-- -------
+--     34
+--     43
+-- (2 rows)

@@ -29,3 +29,11 @@ select AttributeName,
          as CorrSign,
        CorrValue
 from SalesTemporalCorr;
+
+--    attributename   | corrsign |       corrvalue       
+-- -------------------+----------+-----------------------
+--  Unemployment rate | -        |   -0.0258637151104456
+--  CPI               | -        |   -0.0209213356051743
+--  Fuel price        | -        | -0.000120295860528548
+--  Temperature       | -        |  -0.00231244659998809
+-- (4 rows)
