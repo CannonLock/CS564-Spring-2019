@@ -1,16 +1,18 @@
-java: pgtest.java
+compile-java:
 	javac pgtest.java
+
+run-java: compile-java
 	java -Djava.security.auth.login.config=login.config -classpath ./postgresql-8.4-703.jdbc4.jar:. pgtest
 
-jar: pgtest.class Prompter.class QueryBuilder.class ResultPrinter.class SQLExecutor.class
-	jar cvfe executable.jar pgtest *.class
+compile-jar: compile-java
+	jar cfm executable.jar MANIFEST.MF *.class login.config postgresql-8.4-703.jdbc4.jar
 
-run-jar: executable.jar
-	java -jar executable.jar
+run-jar: compile-jar
+	java -Djava.security.auth.login.config=login.config -jar executable.jar
 
 clean:
 	rm -rf *.class
-	rm -rf *.jar
+	rm -rf executable.jar
 
 sql:
 	psql < query1.sql

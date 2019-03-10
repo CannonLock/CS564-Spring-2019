@@ -14,7 +14,6 @@ public class pgtest {
      * @param args not used
      */
     public static void main(String[] args) {
-//        String url = "jdbc:postgresql://localhost:5432/ShawnZhong";
         String url = "jdbc:postgresql://stampy.cs.wisc.edu/cs564instr?sslfactory=org.postgresql.ssl.NonValidatingFactory&ssl";
         SQLExecutor.connect(url);
         while (true) {
@@ -229,7 +228,7 @@ class Prompter {
      *
      * @param message the message printed to the console
      * @return true if the user input starts with y, or false if the user input
-     * starts with n
+     *         starts with n
      */
     static boolean promptYesOrNo(String message) {
         try {
@@ -283,6 +282,7 @@ class SQLExecutor {
             conn = DriverManager.getConnection(url);
             executeUpdate(QueryBuilder.setPath());
         } catch (SQLException e) {
+            e.printStackTrace();
             System.out.println("Cannot connect to " + url);
             System.exit(1);
         }
@@ -318,7 +318,7 @@ class SQLExecutor {
      *
      * @param query the query to be executed
      * @return either (1) the row count for SQL Data Manipulation Language (DML)
-     * statements or (2) 0 for SQL statements that return nothing
+     *         statements or (2) 0 for SQL statements that return nothing
      * @throws SQLException
      */
     static int executeUpdate(String query) throws SQLException {
@@ -403,7 +403,7 @@ class QueryBuilder {
      *
      * @param tableName the table name to be checked
      * @return if tableName is not null, the input tableName will be returned.
-     * Otherwise a temperate table name will be returned.
+     *         Otherwise a temperate table name will be returned.
      */
     private static String preprocessTableName(String tableName) {
         if (tableName == null)
