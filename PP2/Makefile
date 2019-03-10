@@ -1,3 +1,5 @@
+all: run-java
+
 compile-java:
 	javac pgtest.java
 

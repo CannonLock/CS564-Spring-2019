@@ -220,7 +220,7 @@ class Prompter {
      * @return whether the user wants to continue sampling
      */
     static boolean continueSample() {
-        return promptYesOrNo("Do you want continue sampling? (Enter Y/N): ");
+        return promptYesOrNo("Do you want to continue sampling? (Enter Y/N): ");
     }
 
     /**
@@ -282,7 +282,6 @@ class SQLExecutor {
             conn = DriverManager.getConnection(url);
             executeUpdate(QueryBuilder.setPath());
         } catch (SQLException e) {
-            e.printStackTrace();
             System.out.println("Cannot connect to " + url);
             System.exit(1);
         }
@@ -488,6 +487,10 @@ class ResultPrinter {
                 System.out.print(rs.getFloat(i));
             } else if ("java.sql.Date".equals(className)) {
                 System.out.print(rs.getDate(i));
+            } else if ("java.lang.Boolean".equals(className)) {
+                System.out.print(rs.getBoolean(i));
+            } else if ("java.lang.String".equals(className)) {
+                System.out.print(rs.getString(i));
             } else {
                 throw new IllegalStateException("Unexpected value: " + className);
             }
