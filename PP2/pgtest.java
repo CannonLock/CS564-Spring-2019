@@ -8,18 +8,14 @@ import java.util.*;
  * Main Class for the project
  */
 public class pgtest {
-        String url =
-                "jdbc:postgresql://stampy.cs.wisc.edu/cs564instr?sslfactory=org.postgresql.ssl.NonValidatingFactory&ssl";
-//        String url = "jdbc:postgresql://localhost:5432/ShawnZhong";
     /**
      * The entry of the program
-     * 
+     *
      * @param args not used
      */
     public static void main(String[] args) {
-        // String url =
-        // "jdbc:postgresql://stampy.cs.wisc.edu/cs564instr?sslfactory=org.postgresql.ssl.NonValidatingFactory&ssl";
-        String url = "jdbc:postgresql://localhost:5432/ShawnZhong";
+//        String url = "jdbc:postgresql://localhost:5432/ShawnZhong";
+        String url = "jdbc:postgresql://stampy.cs.wisc.edu/cs564instr?sslfactory=org.postgresql.ssl.NonValidatingFactory&ssl";
         SQLExecutor.connect(url);
         while (true) {
             try {
@@ -32,7 +28,7 @@ public class pgtest {
 
     /**
      * This method is called on each iteration of sampling
-     * 
+     *
      * @throws SQLException
      */
     private static void iteration() throws SQLException {
@@ -43,7 +39,11 @@ public class pgtest {
         int N = SQLExecutor.getCount(query);
 
         while (true) { // sample
-            int n = Math.min(N, Prompter.sampleSize());
+            int n = Prompter.sampleSize();
+            if (n > N) {
+                n = Math.min(n, N);
+                System.out.println("The input size exceed the size limit, " + N + "results are selected");
+            }
             long seed = Prompter.seed();
             String outputTableName = Prompter.outputTableName();
 
@@ -73,7 +73,7 @@ public class pgtest {
     /**
      * Randomly generate some row numbers of rows that has not been sampled yet,
      * assuming row number of queries are consecutive.
-     * 
+     *
      * @param R        number of rows remaining in the query.
      * @param n        number of rows to be sampled.
      * @param seed     seed for the random number generator
@@ -120,7 +120,7 @@ class Prompter {
      * input string has more than one character, it reads the first character as the
      * input if S is selected, the user is required to input a table name other
      * input will be treated as invalid input
-     * 
+     *
      * @return output table name if S is selected, or null if O is selected
      */
     static String outputTableName() {
@@ -148,7 +148,7 @@ class Prompter {
      * starts with T, it will ask user for the table name to be sampled from. If the
      * input starts with Q, it will ask for the query to be sampled from. If the
      * input starts with E, the program will exit. This method is case insensitive.
-     * 
+     *
      * @return user query
      */
     static String userQuery() {
@@ -176,7 +176,7 @@ class Prompter {
      * Ask user for the number of samples they want for the query/table. The input
      * must be an integer that is greater than zero. If inval input is detected, the
      * user will be prompt to input a new number.
-     * 
+     *
      * @return the positive integer sample size
      */
     static int sampleSize() {
@@ -195,7 +195,7 @@ class Prompter {
     /**
      * Ask user for the seed used for random sampling. The input cound be a long
      * integer. If N is selected, the previous seed will be used
-     * 
+     *
      * @return seed the seed used for random sampling
      */
     static long seed() {
@@ -217,7 +217,7 @@ class Prompter {
 
     /**
      * Ask user whether to continue sampling
-     * 
+     *
      * @return whether the user wants to continue sampling
      */
     static boolean continueSample() {
@@ -226,10 +226,10 @@ class Prompter {
 
     /**
      * Promoted the message to user, and askes for Y/N input
-     * 
+     *
      * @param message the message printed to the console
      * @return true if the user input starts with y, or false if the user input
-     *         starts with n
+     * starts with n
      */
     static boolean promptYesOrNo(String message) {
         try {
@@ -250,7 +250,7 @@ class Prompter {
     /**
      * Print the message to the console, and return the trimed user input in lower
      * case
-     * 
+     *
      * @param message the message to be printed to the console
      * @return
      */
@@ -275,7 +275,7 @@ class SQLExecutor {
 
     /**
      * Start a connection with the specified database.
-     * 
+     *
      * @param url url of the database specified.
      */
     static void connect(String url) {
@@ -290,7 +290,7 @@ class SQLExecutor {
 
     /**
      * Find the number of rows that will be returned by the given query.
-     * 
+     *
      * @param query the query to be sampled from
      * @return the number of rows of the given query
      * @throws SQLException
@@ -303,7 +303,7 @@ class SQLExecutor {
 
     /**
      * Execute a query and returns the result set
-     * 
+     *
      * @param query the query to be executed
      * @return the result set for the query
      * @throws SQLException
@@ -315,10 +315,10 @@ class SQLExecutor {
 
     /**
      * Execute a query that updates the table (no return value)
-     * 
+     *
      * @param query the query to be executed
      * @return either (1) the row count for SQL Data Manipulation Language (DML)
-     *         statements or (2) 0 for SQL statements that return nothing
+     * statements or (2) 0 for SQL statements that return nothing
      * @throws SQLException
      */
     static int executeUpdate(String query) throws SQLException {
@@ -335,7 +335,7 @@ class QueryBuilder {
 
     /**
      * Generate a query to set search path
-     * 
+     *
      * @return query to set search path to public, hw2
      */
     static String setPath() {
@@ -344,7 +344,7 @@ class QueryBuilder {
 
     /**
      * Generate a query which drops the column called "rownum" in the given table
-     * 
+     *
      * @param tableName the name of table to be altered
      * @return query that alter the table
      */
@@ -354,7 +354,7 @@ class QueryBuilder {
 
     /**
      * Generate a query which drops the table of given table name
-     * 
+     *
      * @param tableName the name of table to be droped
      * @return query that drops the table of given name
      */
@@ -364,7 +364,7 @@ class QueryBuilder {
 
     /**
      * Generate a query that selects everything from the given table
-     * 
+     *
      * @param tableName the name of table to be selected from
      * @return query that selects everything from the given table
      */
@@ -375,7 +375,7 @@ class QueryBuilder {
     /**
      * Generate a query to select sample rows of input row number by using the input
      * query, and insert them into a new table named as the input table name
-     * 
+     *
      * @param query        Query to run
      * @param sampleRowNum Number of samples to select
      * @param tableName    The new table name
@@ -390,7 +390,7 @@ class QueryBuilder {
     /**
      * Generate a query that gets the number of rows in the table returned by the
      * query
-     * 
+     *
      * @param query the query that genrate the result
      * @return the number of rows in the result table returned by the query
      */
@@ -400,10 +400,10 @@ class QueryBuilder {
 
     /**
      * This method checks if a table name is null.
-     * 
+     *
      * @param tableName the table name to be checked
      * @return if tableName is not null, the input tableName will be returned.
-     *         Otherwise a temperate table name will be returned.
+     * Otherwise a temperate table name will be returned.
      */
     private static String preprocessTableName(String tableName) {
         if (tableName == null)
@@ -413,7 +413,7 @@ class QueryBuilder {
 
     /**
      * A helper function used to truncate the semicolon of the query if exists
-     * 
+     *
      * @param query the query to be truncated
      * @return a query with semicolon truncated
      */
@@ -426,9 +426,9 @@ class QueryBuilder {
 
     /**
      * Convert an integer array to a String
-     * 
+     * <p>
      * new Integer[]{1, 2, 3} => 1, 2, 3
-     * 
+     *
      * @param array the array to be converted
      * @return the resulting String
      */
@@ -444,7 +444,7 @@ class QueryBuilder {
 class ResultPrinter {
     /**
      * This method prints out the content of a result set
-     * 
+     *
      * @param rs the table to be output (query result)
      * @throws SQLException
      */
@@ -456,7 +456,7 @@ class ResultPrinter {
 
     /**
      * This method prints the header of the table to be output.
-     * 
+     *
      * @param rs the table to be output (query result)
      * @throws SQLException
      */
@@ -472,7 +472,7 @@ class ResultPrinter {
     /**
      * Print the result selected from the result set in the format of each row
      * corresponding one data entry
-     * 
+     *
      * @param rs the table to be output (query result)
      * @throws SQLException
      */
