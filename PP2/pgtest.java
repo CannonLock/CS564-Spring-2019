@@ -33,8 +33,10 @@ public class pgtest {
     private static void iteration() throws SQLException {
         Set<Integer> selected = new HashSet<>();
         String query = Prompter.userQuery();
-        if (query == null)
+        if (query == null){
+            SQLExecutor.executeUpdate(QueryBuilder.dropTable(null));
             System.exit(0);
+        }
         int N = SQLExecutor.getCount(query);
 
         while (true) { // sample
