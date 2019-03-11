@@ -7,6 +7,12 @@ with YearMonthSales(month, year, store, dept, weeklysales) AS
                 weeklysales
          from sales
        ),
+     YearMonthCount(year, month) AS 
+      (
+         select year, count(distinct month) 
+         from YearMonthSales
+         group by year
+      ),
      NonZeroSales(month, year, store, dept, weeklysales) AS
        (
          select *
@@ -21,11 +27,9 @@ with YearMonthSales(month, year, store, dept, weeklysales) AS
        ),
      DeptFullMonth(year, store, dept) AS
        (
-         select year, store, dept
-         from DeptMonthCount
-         where (month_count = 11 and year = 2010)
-            or (month_count = 12 and year = 2011)
-            or (month_count = 10 and year = 2012)
+         select DeptMonthCount.year, store, dept
+         from DeptMonthCount join YearMonthCount on DeptMonthCount.year = YearMonthCount.year
+         where DeptMonthCount.month_count = YearMonthCount.month
        ),
      StoreFullMonth(store, year, dept_count) AS
        (
