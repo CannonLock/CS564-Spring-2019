@@ -30,8 +30,8 @@ Files
 * query1.sql - query10.sql: one file per question, including the resulted rows in the comment
 * pgtest.java: Java code that shows the prompt and output data based on input information
 * executable.jar: Compiled jar file for pgtest.java. Use make run-jar to run the file
-Output
 
+Output
 
 [szhong@snares-03] (1)$ make
 javac pgtest.java
