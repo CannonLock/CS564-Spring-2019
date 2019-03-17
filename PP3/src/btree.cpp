@@ -24,8 +24,15 @@ using namespace std;
 namespace badgerdb {
     /**
      * Constructor
+     *
+     * The constructor first checks if the specified index ﬁle exists.
+     * And index ﬁle name is constructed by concatenating the relational name with the offset of the attribute over
+     * which the index is built.
+     *
+     * If the index ﬁle exists, the ﬁle is opened. Else, a new index ﬁle is created.
+     *
      * @param relationName The name of the relation on which to build the index.
-     * @param outIndexName The name of the index ﬁle.
+     * @param outIndexName The name of the index file.
      * @param bufMgrIn The instance of the global buffer manager.
      * @param attrByteOffset The byte offset of the attribute in the tuple on which to build the index.
      * @param attrType The data type of the attribute we are indexing.
@@ -44,12 +51,13 @@ namespace badgerdb {
      * Perform any cleanup that may be necessary, including
      *      clearing up any state variables,
      *      unpinning any B+ Tree pages that are pinned, and
-     *      ﬂushing the index ﬁle (by calling bufMgr->flushFile()).
+     *      flushing the index file (by calling bufMgr->flushFile()).
      *
-     * Note that this method does not delete the index ﬁle! But, deletion of the ﬁle object is required,
-     * which will call the destructor of File class causing the index ﬁle to be closed.
+     * Note that this method does not delete the index file! But, deletion of the file object is required,
+     * which will call the destructor of File class causing the index file to be closed.
      */
     BTreeIndex::~BTreeIndex() {
+        bufMgr->flushFile(file);
         delete file;
     }
 

@@ -280,12 +280,12 @@ namespace badgerdb {
         /**
          * Low Operator. Can only be GT(>) or GTE(>=).
          */
-        Operator lowOp;
+        Operator lowOp{GT};
 
         /**
          * High Operator. Can only be LT(<) or LTE(<=).
          */
-        Operator highOp;
+        Operator highOp{LT};
 
 
     public:
