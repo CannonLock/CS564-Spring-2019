@@ -14,12 +14,12 @@
 
 namespace badgerdb {
 
-/**
- * @brief Iterator for iterating over the records in a page.
- *
- * This class provides a forward-only iterator that iterates over all the
- * records stored in a Page.
- */
+    /**
+     * @brief Iterator for iterating over the records in a page.
+     *
+     * This class provides a forward-only iterator that iterates over all the
+     * records stored in a Page.
+     */
     class PageIterator {
     public:
         /**

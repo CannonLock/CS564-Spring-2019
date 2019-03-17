@@ -376,7 +376,7 @@ namespace badgerdb {
         stream_->flush();
     }
 
-//delePage should not be called for a blob_file, not supported
+    //delePage should not be called for a blob_file, not supported
     void BlobFile::deletePage(const PageId page_number) {
         throw InvalidPageException(page_number, filename_);
     }

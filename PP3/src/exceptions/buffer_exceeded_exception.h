@@ -13,9 +13,9 @@
 
 namespace badgerdb {
 
-/**
- * @brief An exception that is thrown when buffer capacity is exceeded.
- */
+    /**
+     * @brief An exception that is thrown when buffer capacity is exceeded.
+     */
     class BufferExceededException : public BadgerDbException {
     public:
         /**

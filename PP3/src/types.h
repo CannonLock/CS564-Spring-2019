@@ -9,24 +9,24 @@
 
 namespace badgerdb {
 
-/**
- * @brief Identifier for a page in a file.
- */
+    /**
+     * @brief Identifier for a page in a file.
+     */
     typedef std::uint32_t PageId;
 
-/**
- * @brief Identifier for a slot in a page.
- */
+    /**
+     * @brief Identifier for a slot in a page.
+     */
     typedef std::uint16_t SlotId;
 
-/**
- * @brief Identifier for a frame in buffer pool.
- */
+    /**
+     * @brief Identifier for a frame in buffer pool.
+     */
     typedef std::uint32_t FrameId;
 
-/**
- * @brief Identifier for a record in a page.
- */
+    /**
+     * @brief Identifier for a record in a page.
+     */
     struct RecordId {
         /**
          * Number of page containing this record.

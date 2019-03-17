@@ -19,18 +19,18 @@
 
 namespace badgerdb {
 
-/**
- * @brief Datatype enumeration type.
- */
+    /**
+     * @brief Datatype enumeration type.
+     */
     enum Datatype {
         INTEGER = 0,
         DOUBLE = 1,
         STRING = 2
     };
 
-/**
- * @brief Scan operations enumeration. Passed to BTreeIndex::startScan() method.
- */
+    /**
+     * @brief Scan operations enumeration. Passed to BTreeIndex::startScan() method.
+     */
     enum Operator {
         LT,    /* Less Than */
         LTE,    /* Less Than or Equal to */
@@ -39,22 +39,22 @@ namespace badgerdb {
     };
 
 
-/**
- * @brief Number of key slots in B+Tree leaf for INTEGER key.
- */
-//                                                  sibling ptr             key               rid
+    /**
+     * @brief Number of key slots in B+Tree leaf for INTEGER key.
+     */
+    //                                                  sibling ptr             key               rid
     const int INTARRAYLEAFSIZE = (Page::SIZE - sizeof(PageId)) / (sizeof(int) + sizeof(RecordId));
 
-/**
- * @brief Number of key slots in B+Tree non-leaf for INTEGER key.
- */
-//                                                     level     extra pageNo                  key       pageNo
+    /**
+     * @brief Number of key slots in B+Tree non-leaf for INTEGER key.
+     */
+    //                                                     level     extra pageNo                  key       pageNo
     const int INTARRAYNONLEAFSIZE = (Page::SIZE - sizeof(int) - sizeof(PageId)) / (sizeof(int) + sizeof(PageId));
 
-/**
- * @brief Structure to store a key-rid pair. It is used to pass the pair to functions that 
- * add to or make changes to the leaf node pages of the tree. Is templated for the key member.
- */
+    /**
+     * @brief Structure to store a key-rid pair. It is used to pass the pair to functions that
+     * add to or make changes to the leaf node pages of the tree. Is templated for the key member.
+     */
     template<class T>
     class RIDKeyPair {
     public:
@@ -67,10 +67,10 @@ namespace badgerdb {
         }
     };
 
-/**
- * @brief Structure to store a key page pair which is used to pass the key and page to functions that make 
- * any modifications to the non leaf pages of the tree.
-*/
+    /**
+     * @brief Structure to store a key page pair which is used to pass the key and page to functions that make
+     * any modifications to the non leaf pages of the tree.
+    */
     template<class T>
     class PageKeyPair {
     public:
@@ -83,11 +83,11 @@ namespace badgerdb {
         }
     };
 
-/**
- * @brief Overloaded operator to compare the key values of two rid-key pairs
- * and if they are the same compares to see if the first pair has
- * a smaller rid.pageNo value.
-*/
+    /**
+     * @brief Overloaded operator to compare the key values of two rid-key pairs
+     * and if they are the same compares to see if the first pair has
+     * a smaller rid.pageNo value.
+    */
     template<class T>
     bool operator<(const RIDKeyPair<T> &r1, const RIDKeyPair<T> &r2) {
         if (r1.key != r2.key)
@@ -96,14 +96,14 @@ namespace badgerdb {
             return r1.rid.page_number < r2.rid.page_number;
     }
 
-/**
- * @brief The meta page, which holds metadata for Index file, is always first page of the btree index file and is cast
- * to the following structure to store or retrieve information from it.
- * Contains the relation name for which the index is created, the byte offset
- * of the key value on which the index is made, the type of the key and the page no
- * of the root page. Root page starts as page 2 but since a split can occur
- * at the root the root page may get moved up and get a new page no.
-*/
+    /**
+     * @brief The meta page, which holds metadata for Index file, is always first page of the btree index file and is cast
+     * to the following structure to store or retrieve information from it.
+     * Contains the relation name for which the index is created, the byte offset
+     * of the key value on which the index is made, the type of the key and the page no
+     * of the root page. Root page starts as page 2 but since a split can occur
+     * at the root the root page may get moved up and get a new page no.
+    */
     struct IndexMetaInfo {
         /**
          * Name of base relation.
@@ -126,16 +126,16 @@ namespace badgerdb {
         PageId rootPageNo;
     };
 
-/*
-Each node is a page, so once we read the page in we just cast the pointer to the page to this struct and use it to access the parts
-These structures basically are the format in which the information is stored in the pages for the index file depending on what kind of 
-node they are. The level memeber of each non leaf structure seen below is set to 1 if the nodes 
-at this level are just above the leaf nodes. Otherwise set to 0.
-*/
+    /*
+    Each node is a page, so once we read the page in we just cast the pointer to the page to this struct and use it to access the parts
+    These structures basically are the format in which the information is stored in the pages for the index file depending on what kind of
+    node they are. The level memeber of each non leaf structure seen below is set to 1 if the nodes
+    at this level are just above the leaf nodes. Otherwise set to 0.
+    */
 
-/**
- * @brief Structure for all non-leaf nodes when the key is of INTEGER type.
-*/
+    /**
+     * @brief Structure for all non-leaf nodes when the key is of INTEGER type.
+    */
     struct NonLeafNodeInt {
         /**
          * Level of the node in the tree.
@@ -154,9 +154,9 @@ at this level are just above the leaf nodes. Otherwise set to 0.
     };
 
 
-/**
- * @brief Structure for all leaf nodes when the key is of INTEGER type.
-*/
+    /**
+     * @brief Structure for all leaf nodes when the key is of INTEGER type.
+    */
     struct LeafNodeInt {
         /**
          * Stores keys.
@@ -176,10 +176,10 @@ at this level are just above the leaf nodes. Otherwise set to 0.
     };
 
 
-/**
- * @brief BTreeIndex class. It implements a B+ Tree index on a single attribute of a
- * relation. This index supports only one scan at a time.
-*/
+    /**
+     * @brief BTreeIndex class. It implements a B+ Tree index on a single attribute of a
+     * relation. This index supports only one scan at a time.
+    */
     class BTreeIndex {
 
     private:
@@ -187,22 +187,22 @@ at this level are just above the leaf nodes. Otherwise set to 0.
         /**
          * File object for the index file.
          */
-        File *file;
+        File *file{};
 
         /**
          * Buffer Manager Instance.
          */
-        BufMgr *bufMgr;
+        BufMgr *bufMgr{};
 
         /**
          * Page number of meta page.
          */
-        PageId headerPageNum;
+        PageId headerPageNum{};
 
         /**
          * page number of root page of B+ tree inside index file.
          */
-        PageId rootPageNum;
+        PageId rootPageNum{};
 
         /**
          * Datatype of attribute over which index is built.
@@ -212,17 +212,17 @@ at this level are just above the leaf nodes. Otherwise set to 0.
         /**
          * Offset of attribute, over which index is built, inside records.
          */
-        int attrByteOffset;
+        int attrByteOffset{};
 
         /**
          * Number of keys in leaf node, depending upon the type of key.
          */
-        int leafOccupancy;
+        int leafOccupancy{};
 
         /**
          * Number of keys in non-leaf node, depending upon the type of key.
          */
-        int nodeOccupancy;
+        int nodeOccupancy{};
 
 
         // MEMBERS SPECIFIC TO SCANNING
@@ -230,32 +230,32 @@ at this level are just above the leaf nodes. Otherwise set to 0.
         /**
          * True if an index scan has been started.
          */
-        bool scanExecuting;
+        bool scanExecuting{};
 
         /**
          * Index of next entry to be scanned in current leaf being scanned.
          */
-        int nextEntry;
+        int nextEntry{};
 
         /**
          * Page number of current page being scanned.
          */
-        PageId currentPageNum;
+        PageId currentPageNum{};
 
         /**
          * Current Page being scanned.
          */
-        Page *currentPageData;
+        Page *currentPageData{};
 
         /**
          * Low INTEGER value for scan.
          */
-        int lowValInt;
+        int lowValInt{};
 
         /**
          * Low DOUBLE value for scan.
          */
-        double lowValDouble;
+        double lowValDouble{};
 
         /**
          * Low STRING value for scan.
@@ -265,12 +265,12 @@ at this level are just above the leaf nodes. Otherwise set to 0.
         /**
          * High INTEGER value for scan.
          */
-        int highValInt;
+        int highValInt{};
 
         /**
          * High DOUBLE value for scan.
          */
-        double highValDouble;
+        double highValDouble{};
 
         /**
          * High STRING value for scan.

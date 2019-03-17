@@ -16,9 +16,9 @@
 
 namespace badgerdb {
 
-//----------------------------------------
-// Constructor of the class BufMgr
-//----------------------------------------
+    //----------------------------------------
+    // Constructor of the class BufMgr
+    //----------------------------------------
 
     BufMgr::BufMgr(std::uint32_t bufs)
             : numBufs(bufs) {

@@ -14,10 +14,10 @@
 
 namespace badgerdb {
 
-/**
- * @brief An exception that is thrown when a record is requested from a page
- *        that has a bad record ID.
- */
+    /**
+     * @brief An exception that is thrown when a record is requested from a page
+     *        that has a bad record ID.
+     */
     class InvalidRecordException : public BadgerDbException {
     public:
         /**

@@ -13,14 +13,14 @@
 
 namespace badgerdb {
 
-/**
-* forward declaration of BufMgr class 
-*/
+    /**
+    * forward declaration of BufMgr class
+    */
     class BufMgr;
 
-/**
-* @brief Class for maintaining information about buffer pool frames
-*/
+    /**
+    * @brief Class for maintaining information about buffer pool frames
+    */
     class BufDesc {
 
         friend class BufMgr;
@@ -111,9 +111,9 @@ namespace badgerdb {
     };
 
 
-/**
-* @brief Class to maintain statistics of buffer usage 
-*/
+    /**
+    * @brief Class to maintain statistics of buffer usage
+    */
     struct BufStats {
         /**
        * Total number of accesses to buffer pool
@@ -146,9 +146,9 @@ namespace badgerdb {
     };
 
 
-/**
-* @brief The central class which manages the buffer pool including frame allocation and deallocation to pages in the file 
-*/
+    /**
+    * @brief The central class which manages the buffer pool including frame allocation and deallocation to pages in the file
+    */
     class BufMgr {
     private:
         /**

@@ -14,9 +14,9 @@
 
 namespace badgerdb {
 
-/**
- * @brief An exception that is thrown when a new entry to be inserted in the hash table is already present in it.
- */
+    /**
+     * @brief An exception that is thrown when a new entry to be inserted in the hash table is already present in it.
+     */
     class HashAlreadyPresentException : public BadgerDbException {
     public:
         /**

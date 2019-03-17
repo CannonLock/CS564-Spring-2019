@@ -14,12 +14,12 @@
 
 namespace badgerdb {
 
-/**
- * @brief Iterator for iterating over the pages in a file.
- *
- * This class provides a forward-only iterator for iterating over all of the
- * pages in a file.
- */
+    /**
+     * @brief Iterator for iterating over the pages in a file.
+     *
+     * This class provides a forward-only iterator for iterating over all of the
+     * pages in a file.
+     */
     class FileIterator {
     public:
         /**

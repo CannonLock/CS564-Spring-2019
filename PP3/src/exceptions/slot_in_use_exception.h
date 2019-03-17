@@ -14,10 +14,10 @@
 
 namespace badgerdb {
 
-/**
- * @brief An exception that is thrown when a record is attempted to be inserted
- *        into a slot that is already in use.
- */
+    /**
+     * @brief An exception that is thrown when a record is attempted to be inserted
+     *        into a slot that is already in use.
+     */
     class SlotInUseException : public BadgerDbException {
     public:
         /**

@@ -18,9 +18,9 @@ namespace badgerdb {
 
     class FileIterator;
 
-/**
- * @brief Header metadata for files on disk which contain pages.
- */
+    /**
+     * @brief Header metadata for files on disk which contain pages.
+     */
     struct FileHeader {
         /**
          * Number of pages allocated in the file.
@@ -56,20 +56,20 @@ namespace badgerdb {
         }
     };
 
-/**
- * @brief Class which represents a file in the filesystem containing database
- *        pages.
- *
- * The File class wraps a stream to an underlying file on disk.  Files contain
- * fixed-sized pages, and they never deallocate space (though they do reuse
- * deleted pages if possible).  If multiple File objects refer to the same
- * underlying file, they will share the stream in memory.
- * If a file that has already been opened (possibly by another query), then the File class
- * detects this (by looking in the open_streams_ map) and just returns a file object with
- * the already created stream for the file without actually opening the UNIX file again. 
- *
- * @warning This class is not threadsafe.
- */
+    /**
+     * @brief Class which represents a file in the filesystem containing database
+     *        pages.
+     *
+     * The File class wraps a stream to an underlying file on disk.  Files contain
+     * fixed-sized pages, and they never deallocate space (though they do reuse
+     * deleted pages if possible).  If multiple File objects refer to the same
+     * underlying file, they will share the stream in memory.
+     * If a file that has already been opened (possibly by another query), then the File class
+     * detects this (by looking in the open_streams_ map) and just returns a file object with
+     * the already created stream for the file without actually opening the UNIX file again.
+     *
+     * @warning This class is not threadsafe.
+     */
 
 
     class File {

@@ -14,9 +14,9 @@
 
 namespace badgerdb {
 
-/**
- * @brief An exception that is thrown when a page which is expected to be pinned in the buffer pool is found to be not pinned.
- */
+    /**
+     * @brief An exception that is thrown when a page which is expected to be pinned in the buffer pool is found to be not pinned.
+     */
     class PageNotPinnedException : public BadgerDbException {
     public:
         /**

@@ -17,9 +17,9 @@
 
 namespace badgerdb {
 
-/**
- * @brief This class is used to sequentially scan records in a relation.
- */
+    /**
+     * @brief This class is used to sequentially scan records in a relation.
+     */
     class FileScan {
     public:
 

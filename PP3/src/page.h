@@ -17,12 +17,12 @@
 
 namespace badgerdb {
 
-/**
- * @brief Header metadata in a page.
- *
- * Header metadata in each page which tracks where space has been used and
- * contains a pointer to the next page in the file.
- */
+    /**
+     * @brief Header metadata in a page.
+     *
+     * Header metadata in each page which tracks where space has been used and
+     * contains a pointer to the next page in the file.
+     */
     struct PageHeader {
         /**
          * Lower bound of the free space.  This is the offset of the first unused byte
@@ -72,9 +72,9 @@ namespace badgerdb {
         }
     };
 
-/**
- * @brief Slot metadata that tracks where a record is in the data space.
- */
+    /**
+     * @brief Slot metadata that tracks where a record is in the data space.
+     */
     struct PageSlot {
         /**
          * Whether the slot currently holds data.  May be false if this slot's
@@ -95,16 +95,16 @@ namespace badgerdb {
 
     class PageIterator;
 
-/**
- * @brief Class which represents a fixed-size database page containing records.
- *
- * A page is a fixed-size unit of data storage.  Each page holds zero or more
- * records, which consist of arbitrary binary data.  Records are placed into
- * slots and identified by a RecordId.  Although a record's actual contents may
- * be moved on the page, accessing a record by its slot is consistent.
- *
- * @warning This class is not threadsafe.
- */
+    /**
+     * @brief Class which represents a fixed-size database page containing records.
+     *
+     * A page is a fixed-size unit of data storage.  Each page holds zero or more
+     * records, which consist of arbitrary binary data.  Records are placed into
+     * slots and identified by a RecordId.  Although a record's actual contents may
+     * be moved on the page, accessing a record by its slot is consistent.
+     *
+     * @warning This class is not threadsafe.
+     */
     class Page {
     public:
         /**

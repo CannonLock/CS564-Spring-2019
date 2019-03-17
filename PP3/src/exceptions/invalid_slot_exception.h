@@ -14,10 +14,10 @@
 
 namespace badgerdb {
 
-/**
- * @brief An exception that is thrown when a slot that doesn't have data is
- *        requested from a page.
- */
+    /**
+     * @brief An exception that is thrown when a slot that doesn't have data is
+     *        requested from a page.
+     */
     class InvalidSlotException : public BadgerDbException {
     public:
         /**

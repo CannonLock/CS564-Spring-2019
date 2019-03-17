@@ -12,9 +12,9 @@
 
 namespace badgerdb {
 
-/**
- * @brief Base class for all BadgerDB-specific exceptions.
- */
+    /**
+     * @brief Base class for all BadgerDB-specific exceptions.
+     */
     class BadgerDbException : public std::exception {
     public:
         /**

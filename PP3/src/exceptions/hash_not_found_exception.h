@@ -14,9 +14,9 @@
 
 namespace badgerdb {
 
-/**
- * @brief An exception that is thrown when an entry being looked up in the hash table is not present in it.
- */
+    /**
+     * @brief An exception that is thrown when an entry being looked up in the hash table is not present in it.
+     */
     class HashNotFoundException : public BadgerDbException {
     public:
         /**

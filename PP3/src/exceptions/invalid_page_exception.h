@@ -14,13 +14,13 @@
 
 namespace badgerdb {
 
-/**
- * @brief An exception that is thrown when an attempt is made to access an
- *        invalid page in a file.
- * 
- * Pages are considered invalid if they have not yet been allocated (an ID off
- * the end of the file) or if they have been deleted and not yet re-allocated.
- */
+    /**
+     * @brief An exception that is thrown when an attempt is made to access an
+     *        invalid page in a file.
+     *
+     * Pages are considered invalid if they have not yet been allocated (an ID off
+     * the end of the file) or if they have been deleted and not yet re-allocated.
+     */
     class InvalidPageException : public BadgerDbException {
     public:
         /**

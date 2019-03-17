@@ -13,10 +13,10 @@
 
 namespace badgerdb {
 
-/**
- * @brief An exception that is thrown when a file deletion is requested for a
- *        filename that's currently open.
- */
+    /**
+     * @brief An exception that is thrown when a file deletion is requested for a
+     *        filename that's currently open.
+     */
     class FileOpenException : public BadgerDbException {
     public:
         /**

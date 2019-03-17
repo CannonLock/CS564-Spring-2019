@@ -13,10 +13,10 @@
 
 namespace badgerdb {
 
-/**
- * @brief An exception that is thrown when a file creation is requested for a
- *        filename that already exists.
- */
+    /**
+     * @brief An exception that is thrown when a file creation is requested for a
+     *        filename that already exists.
+     */
     class FileExistsException : public BadgerDbException {
     public:
         /**

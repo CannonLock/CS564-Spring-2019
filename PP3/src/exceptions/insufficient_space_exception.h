@@ -14,10 +14,10 @@
 
 namespace badgerdb {
 
-/**
- * @brief An exception that is thrown when a record is attempted to be inserted
- *        into a page that doesn't have space for it.
- */
+    /**
+     * @brief An exception that is thrown when a record is attempted to be inserted
+     *        into a page that doesn't have space for it.
+     */
     class InsufficientSpaceException : public BadgerDbException {
     public:
         /**

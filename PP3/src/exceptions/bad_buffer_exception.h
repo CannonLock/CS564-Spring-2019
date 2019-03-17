@@ -14,9 +14,9 @@
 
 namespace badgerdb {
 
-/**
- * @brief An exception that is thrown when a buffer is found whose valid is false but other variables in BufDesc are assigned valid values
- */
+    /**
+     * @brief An exception that is thrown when a buffer is found whose valid is false but other variables in BufDesc are assigned valid values
+     */
     class BadBufferException : public BadgerDbException {
     public:
         /**

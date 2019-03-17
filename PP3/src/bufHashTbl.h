@@ -11,9 +11,9 @@
 
 namespace badgerdb {
 
-/**
-* @brief Declarations for buffer pool hash table
-*/
+    /**
+    * @brief Declarations for buffer pool hash table
+    */
     struct hashBucket {
         /**
          * pointer a file object (more on this below)
@@ -37,11 +37,11 @@ namespace badgerdb {
     };
 
 
-/**
-* @brief Hash table class to keep track of pages in the buffer pool
-*
-* @warning This class is not threadsafe.
-*/
+    /**
+    * @brief Hash table class to keep track of pages in the buffer pool
+    *
+    * @warning This class is not threadsafe.
+    */
     class BufHashTbl {
     private:
         /**

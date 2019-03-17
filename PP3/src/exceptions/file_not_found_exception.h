@@ -13,10 +13,10 @@
 
 namespace badgerdb {
 
-/**
- * @brief An exception that is thrown when a file operation is requested for a
- *        filename that doesn't exist.
- */
+    /**
+     * @brief An exception that is thrown when a file operation is requested for a
+     *        filename that doesn't exist.
+     */
     class FileNotFoundException : public BadgerDbException {
     public:
         /**

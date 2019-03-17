@@ -94,13 +94,13 @@ namespace badgerdb {
         return;
     }
 
-// returns pointer to the current record.  page is left pinned
-// and the scan logic is required to unpin the page 
+    // returns pointer to the current record.  page is left pinned
+    // and the scan logic is required to unpin the page
     std::string FileScan::getRecord() {
         return *pageRecordIter;
     }
 
-// mark current page of scan dirty
+    // mark current page of scan dirty
     void FileScan::markDirty() {
         curDirtyFlag = true;
     }
