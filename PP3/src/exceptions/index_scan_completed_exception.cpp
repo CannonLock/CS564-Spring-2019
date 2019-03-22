@@ -12,11 +12,11 @@
 
 namespace badgerdb {
 
-    IndexScanCompletedException::IndexScanCompletedException()
-            : BadgerDbException("") {
-        std::stringstream ss;
-        ss << "Index Scan Completed";
-        message_.assign(ss.str());
-    }
+IndexScanCompletedException::IndexScanCompletedException()
+    : BadgerDbException("") {
+  std::stringstream ss;
+  ss << "Index Scan Completed";
+  message_.assign(ss.str());
+}
 
 }

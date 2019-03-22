@@ -12,11 +12,11 @@
 
 namespace badgerdb {
 
-    BadScanParamException::BadScanParamException()
-            : BadgerDbException("") {
-        std::stringstream ss;
-        ss << "Bad scan parameters provided.";
-        message_.assign(ss.str());
-    }
+BadScanParamException::BadScanParamException()
+    : BadgerDbException("") {
+  std::stringstream ss;
+  ss << "Bad scan parameters provided.";
+  message_.assign(ss.str());
+}
 
 }

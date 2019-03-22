@@ -13,29 +13,29 @@
 
 namespace badgerdb {
 
-    /**
-     * @brief An exception that is thrown when a file operation is requested for a
-     *        filename that doesn't exist.
-     */
-    class FileNotFoundException : public BadgerDbException {
-    public:
-        /**
-         * Constructs a file not found exception for the given file.
-         *
-         * @param name  Name of file that doesn't exist.
-         */
-        explicit FileNotFoundException(const std::string &name);
+/**
+ * @brief An exception that is thrown when a file operation is requested for a
+ *        filename that doesn't exist.
+ */
+class FileNotFoundException : public BadgerDbException {
+ public:
+  /**
+   * Constructs a file not found exception for the given file.
+   *
+   * @param name  Name of file that doesn't exist.
+   */
+  explicit FileNotFoundException(const std::string &name);
 
-        /**
-         * Returns the name of the file that caused this exception.
-         */
-        virtual const std::string &filename() const { return filename_; }
+  /**
+   * Returns the name of the file that caused this exception.
+   */
+  virtual const std::string &filename() const { return filename_; }
 
-    protected:
-        /**
-         * Name of file that caused this exception.
-         */
-        const std::string &filename_;
-    };
+ protected:
+  /**
+   * Name of file that caused this exception.
+   */
+  const std::string &filename_;
+};
 
 }

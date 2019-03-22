@@ -12,11 +12,11 @@
 
 namespace badgerdb {
 
-    EndOfFileException::EndOfFileException()
-            : BadgerDbException("") {
-        std::stringstream ss;
-        ss << "End of File reached.";
-        message_.assign(ss.str());
-    }
+EndOfFileException::EndOfFileException()
+    : BadgerDbException("") {
+  std::stringstream ss;
+  ss << "End of File reached.";
+  message_.assign(ss.str());
+}
 
 }

@@ -8,7 +8,7 @@
 using namespace std;
 
 const string getIndexName(const string &relationName, const int attrByteOffset) {
-    ostringstream idxStr;
-    idxStr << relationName << ',' << attrByteOffset;
-    return idxStr.str();
+  ostringstream idxStr;
+  idxStr << relationName << ',' << attrByteOffset;
+  return idxStr.str();
 }

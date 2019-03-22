@@ -12,11 +12,11 @@
 
 namespace badgerdb {
 
-    FileOpenException::FileOpenException(const std::string &name)
-            : BadgerDbException(""), filename_(name) {
-        std::stringstream ss;
-        ss << "File is currently open: " << filename_;
-        message_.assign(ss.str());
-    }
+FileOpenException::FileOpenException(const std::string &name)
+    : BadgerDbException(""), filename_(name) {
+  std::stringstream ss;
+  ss << "File is currently open: " << filename_;
+  message_.assign(ss.str());
+}
 
 }

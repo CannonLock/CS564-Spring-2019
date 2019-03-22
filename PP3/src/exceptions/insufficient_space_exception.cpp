@@ -12,18 +12,18 @@
 
 namespace badgerdb {
 
-    InsufficientSpaceException::InsufficientSpaceException(
-            const PageId page_num, const std::size_t requested,
-            const std::size_t available)
-            : BadgerDbException(""),
-              page_number_(page_num),
-              space_requested_(requested),
-              space_available_(available) {
-        std::stringstream ss;
-        ss << "Insufficient space in page " << page_number_
-           << "to hold record.  Requested: " << space_requested_ << " bytes."
-           << " Available: " << space_available_ << " bytes.";
-        message_.assign(ss.str());
-    }
+InsufficientSpaceException::InsufficientSpaceException(
+    const PageId page_num, const std::size_t requested,
+    const std::size_t available)
+    : BadgerDbException(""),
+      page_number_(page_num),
+      space_requested_(requested),
+      space_available_(available) {
+  std::stringstream ss;
+  ss << "Insufficient space in page " << page_number_
+     << "to hold record.  Requested: " << space_requested_ << " bytes."
+     << " Available: " << space_available_ << " bytes.";
+  message_.assign(ss.str());
+}
 
 }

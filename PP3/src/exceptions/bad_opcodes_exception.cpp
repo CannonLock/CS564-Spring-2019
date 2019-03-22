@@ -12,11 +12,11 @@
 
 namespace badgerdb {
 
-    BadOpcodesException::BadOpcodesException()
-            : BadgerDbException("") {
-        std::stringstream ss;
-        ss << "Bad Opcodes provided.";
-        message_.assign(ss.str());
-    }
+BadOpcodesException::BadOpcodesException()
+    : BadgerDbException("") {
+  std::stringstream ss;
+  ss << "Bad Opcodes provided.";
+  message_.assign(ss.str());
+}
 
 }

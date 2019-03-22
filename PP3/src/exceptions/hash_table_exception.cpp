@@ -12,11 +12,11 @@
 
 namespace badgerdb {
 
-    HashTableException::HashTableException()
-            : BadgerDbException("") {
-        std::stringstream ss;
-        ss << "Error occurred in buffer hash table.";
-        message_.assign(ss.str());
-    }
+HashTableException::HashTableException()
+    : BadgerDbException("") {
+  std::stringstream ss;
+  ss << "Error occurred in buffer hash table.";
+  message_.assign(ss.str());
+}
 
 }

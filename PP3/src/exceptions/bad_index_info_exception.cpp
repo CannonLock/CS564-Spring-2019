@@ -12,11 +12,11 @@
 
 namespace badgerdb {
 
-    BadIndexInfoException::BadIndexInfoException(const std::string &reason)
-            : BadgerDbException(""), reason_(reason) {
-        std::stringstream ss;
-        ss << "Bad Index Info read: " << reason_;
-        message_.assign(ss.str());
-    }
+BadIndexInfoException::BadIndexInfoException(const std::string &reason)
+    : BadgerDbException(""), reason_(reason) {
+  std::stringstream ss;
+  ss << "Bad Index Info read: " << reason_;
+  message_.assign(ss.str());
+}
 
 }

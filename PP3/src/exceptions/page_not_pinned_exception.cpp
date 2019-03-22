@@ -12,11 +12,11 @@
 
 namespace badgerdb {
 
-    PageNotPinnedException::PageNotPinnedException(const std::string &nameIn, PageId pageNoIn, FrameId frameNoIn)
-            : BadgerDbException(""), name(nameIn), pageNo(pageNoIn), frameNo(frameNoIn) {
-        std::stringstream ss;
-        ss << "This page is not already pinned. file:  " << name << "page: " << pageNo << "frame: " << frameNo;
-        message_.assign(ss.str());
-    }
+PageNotPinnedException::PageNotPinnedException(const std::string &nameIn, PageId pageNoIn, FrameId frameNoIn)
+    : BadgerDbException(""), name(nameIn), pageNo(pageNoIn), frameNo(frameNoIn) {
+  std::stringstream ss;
+  ss << "This page is not already pinned. file:  " << name << "page: " << pageNo << "frame: " << frameNo;
+  message_.assign(ss.str());
+}
 
 }

@@ -12,11 +12,11 @@
 
 namespace badgerdb {
 
-    ScanNotInitializedException::ScanNotInitializedException()
-            : BadgerDbException("") {
-        std::stringstream ss;
-        ss << "Scan Not Initialized";
-        message_.assign(ss.str());
-    }
+ScanNotInitializedException::ScanNotInitializedException()
+    : BadgerDbException("") {
+  std::stringstream ss;
+  ss << "Scan Not Initialized";
+  message_.assign(ss.str());
+}
 
 }

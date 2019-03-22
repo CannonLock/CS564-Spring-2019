@@ -13,15 +13,15 @@
 
 namespace badgerdb {
 
-    /**
-     * @brief An exception that is thrown when some unexpected error occurs in the hash table.
-     */
-    class BadScanrangeException : public BadgerDbException {
-    public:
-        /**
-         * Constructs a hash table exception.
-         */
-        explicit BadScanrangeException();
-    };
+/**
+ * @brief An exception that is thrown when some unexpected error occurs in the hash table.
+ */
+class BadScanrangeException : public BadgerDbException {
+ public:
+  /**
+   * Constructs a hash table exception.
+   */
+  explicit BadScanrangeException();
+};
 
 }

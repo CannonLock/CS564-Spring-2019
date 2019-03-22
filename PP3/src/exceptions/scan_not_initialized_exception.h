@@ -13,16 +13,16 @@
 
 namespace badgerdb {
 
-    /**
-     * @brief An exception that is thrown when a file operation is requested for a
-     *        filename that doesn't exist.
-     */
-    class ScanNotInitializedException : public BadgerDbException {
-    public:
-        /**
-         * Constructs a file not found exception for the given file.
-         */
-        ScanNotInitializedException();
-    };
+/**
+ * @brief An exception that is thrown when a file operation is requested for a
+ *        filename that doesn't exist.
+ */
+class ScanNotInitializedException : public BadgerDbException {
+ public:
+  /**
+   * Constructs a file not found exception for the given file.
+   */
+  ScanNotInitializedException();
+};
 
 }

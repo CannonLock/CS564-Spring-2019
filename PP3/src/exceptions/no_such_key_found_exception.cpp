@@ -12,11 +12,11 @@
 
 namespace badgerdb {
 
-    NoSuchKeyFoundException::NoSuchKeyFoundException()
-            : BadgerDbException("") {
-        std::stringstream ss;
-        ss << "No such key found.";
-        message_.assign(ss.str());
-    }
+NoSuchKeyFoundException::NoSuchKeyFoundException()
+    : BadgerDbException("") {
+  std::stringstream ss;
+  ss << "No such key found.";
+  message_.assign(ss.str());
+}
 
 }

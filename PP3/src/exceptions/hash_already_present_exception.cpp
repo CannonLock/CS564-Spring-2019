@@ -12,13 +12,13 @@
 
 namespace badgerdb {
 
-    HashAlreadyPresentException::HashAlreadyPresentException(const std::string &nameIn, PageId pageNoIn,
-                                                             FrameId frameNoIn)
-            : BadgerDbException(""), name(nameIn), pageNo(pageNoIn), frameNo(frameNoIn) {
-        std::stringstream ss;
-        ss << "Entry corresponding to the hash value of file:" << name << "page:" << pageNo << "frame:" << frameNo
-           << "is already present in the hash table.";
-        message_.assign(ss.str());
-    }
+HashAlreadyPresentException::HashAlreadyPresentException(const std::string &nameIn, PageId pageNoIn,
+                                                         FrameId frameNoIn)
+    : BadgerDbException(""), name(nameIn), pageNo(pageNoIn), frameNo(frameNoIn) {
+  std::stringstream ss;
+  ss << "Entry corresponding to the hash value of file:" << name << "page:" << pageNo << "frame:" << frameNo
+     << "is already present in the hash table.";
+  message_.assign(ss.str());
+}
 
 }
