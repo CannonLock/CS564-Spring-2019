@@ -1,0 +1,4 @@
+*.o
+badgerdb_main
+src/lib/*.a
+rel*

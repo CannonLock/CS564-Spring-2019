@@ -49,14 +49,14 @@ const int INTARRAYLEAFSIZE =
 //                                                     level     extra pageNo
 //                                                     key       pageNo
 const int INTARRAYNONLEAFSIZE = (Page::SIZE - sizeof(int) - sizeof(PageId)) /
-    (sizeof(int) + sizeof(PageId));
+                                (sizeof(int) + sizeof(PageId));
 
 /**
  * @brief Structure to store a key-rid pair. It is used to pass the pair to
  * functions that add to or make changes to the leaf node pages of the tree. Is
  * templated for the key member.
  */
-template<class T>
+template <class T>
 class RIDKeyPair {
  public:
   RecordId rid;
@@ -73,7 +73,7 @@ class RIDKeyPair {
  * page to functions that make any modifications to the non leaf pages of the
  * tree.
  */
-template<class T>
+template <class T>
 class PageKeyPair {
  public:
   PageId pageNo;
@@ -90,7 +90,7 @@ class PageKeyPair {
  * and if they are the same compares to see if the first pair has
  * a smaller rid.pageNo value.
  */
-template<class T>
+template <class T>
 bool operator<(const RIDKeyPair<T> &r1, const RIDKeyPair<T> &r2) {
   if (r1.key != r2.key)
     return r1.key < r2.key;
@@ -301,10 +301,10 @@ class BTreeIndex {
    * @param outIndexName        Return the name of index file.
    * @param bufMgrIn						Buffer Manager
    * Instance
-   * @param attrByteOffset			Offset of attribute, over which index is
-   * to be built, in the record
-   * @param attrType						Datatype of attribute over which index
-   * is built
+   * @param attrByteOffset			Offset of attribute, over which
+   * index is to be built, in the record
+   * @param attrType						Datatype of attribute
+   * over which index is built
    * @throws  BadIndexInfoException     If the index file already exists for the
    * corresponding attribute, but values in metapage(relationName, attribute
    * byte offset, attribute type etc.) do not match with values received through

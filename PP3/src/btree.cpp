@@ -22,6 +22,10 @@
 using namespace std;
 
 namespace badgerdb {
+
+struct IndexMetaInfo indexMetaInfo {};
+BlobPage rootPage;
+
 /**
  * Constructor
  *
@@ -45,6 +49,28 @@ BTreeIndex::BTreeIndex(const string &relationName, string &outIndexName,
       bufMgr(bufMgrIn),
       attributeType(attrType) {
   outIndexName = getIndexName(relationName, attrByteOffset);
+
+  relationName.copy(indexMetaInfo.relationName, 20, 0);
+  indexMetaInfo.attrByteOffset = attrByteOffset;
+  indexMetaInfo.attrType = attrType;
+
+  file = new BlobFile(outIndexName, true);
+
+  rootPage = file->allocatePage(indexMetaInfo.rootPageNo);
+
+  FileScan fscan(relationName, bufMgr);
+  try {
+    RecordId scanRid;
+    while (1) {
+      fscan.scanNext(scanRid);
+      std::string recordStr = fscan.getRecord();
+      const char *record = recordStr.c_str();
+      int key = *((int *)(record + attrByteOffset));
+      insertEntry(&key, scanRid);
+    }
+  } catch (EndOfFileException e) {
+    std::cout << "Read all records" << std::endl;
+  }
 }
 
 /**
@@ -61,24 +87,47 @@ BTreeIndex::BTreeIndex(const string &relationName, string &outIndexName,
  */
 BTreeIndex::~BTreeIndex() {
   bufMgr->flushFile(file);
+  scanExecuting = false;
   delete file;
+  free(file);
 }
 
 /**
- *
- * This method inserts a new entry into the index using the pair <key, rid>.
- *
- * @param key A pointer to the value (integer) we want to insert.
- * @param rid The corresponding record id of the tuple in the base relation.
- */
-const void BTreeIndex::insertEntry(const void *key, const RecordId rid) {}
+ * Insert a new entry using the pair <value,rid>.
+ * Start from root to recursively find out the leaf to insert the entry in.
+ *The insertion may cause splitting of leaf node. This splitting will require
+ *addition of new leaf page number entry into the parent non-leaf, which may
+ *in-turn get split. This may continue all the way upto the root causing the
+ *root to get split. If root gets split, metapage needs to be changed
+ *accordingly. Make sure to unpin pages as soon as you can.
+ * @param key			Key to insert, pointer to integer/double/char
+ *string
+ * @param rid			Record ID of a record whose entry is getting
+ *inserted into the index.
+ **/
+const void BTreeIndex::insertEntry(const void *key, const RecordId rid) {
+  void *node = rootPage.getNode();
+  if (!node.isLeaf) {
+    int leafNode = searchNode(key);
+  }
+
+  struct LeafNodeInt *curNode = new LeafNodeInt;
+  curNode->keyArray[0] = 1;
+
+  // PageId new_page_number;
+  // Page new_page = file->allocatePage(new_page_number);
+
+  // RecordId rid_new = new_page.insertRecord("123");
+  // file->writePage(new_page_number, new_page);
+}
 
 /**
  *
  * This method is used to begin a filtered scan” of the index.
  *
- * For example, if the method is called using arguments (1,GT,100,LTE), then the
- * scan should seek all entries greater than 1 and less than or equal to 100.
+ * For example, if the method is called using arguments (1,GT,100,LTE), then
+ * the scan should seek all entries greater than 1 and less than or equal to
+ * 100.
  *
  * @param lowValParm The low value to be tested.
  * @param lowOpParm The operation to be used in testing the low range.
@@ -91,10 +140,11 @@ const void BTreeIndex::startScan(const void *lowValParm,
                                  const Operator highOpParm) {
   if (lowOpParm != GT && lowOpParm != GTE) throw BadOpcodesException();
   if (highOpParm != LT && highOpParm != LTE) throw BadOpcodesException();
-  if (lowValParm > highValParm) throw BadScanrangeException();
 
-  lowValInt = *((int *) lowValParm);
-  highValInt = *((int *) highValParm);
+  lowValInt = *((int *)lowValParm);
+  highValInt = *((int *)highValParm);
+  if (lowValInt > highValInt) throw BadScanrangeException();
+
   lowOp = lowOpParm;
   highOp = highOpParm;
 
@@ -103,16 +153,16 @@ const void BTreeIndex::startScan(const void *lowValParm,
 
 /**
  * This method fetches the record id of the next tuple that matches the scan
- * criteria. If the scan has reached the end, then it should throw the following
- * exception: IndexScanCompletedException.
+ * criteria. If the scan has reached the end, then it should throw the
+ * following exception: IndexScanCompletedException.
  *
  * For instance, if there are two data entries that need to be returned in a
- * scan, then the third call to scanNext must throw IndexScanCompletedException.
- * A leaf page that has been read into the buffer pool for the purpose of
- * scanning, should not be unpinned from buffer pool unless all records from it
- * are read or the scan has reached its end. Use the right sibling page number
- * value from the current leaf to move on to the next leaf which holds
- * successive key values for the scan.
+ * scan, then the third call to scanNext must throw
+ * IndexScanCompletedException. A leaf page that has been read into the buffer
+ * pool for the purpose of scanning, should not be unpinned from buffer pool
+ * unless all records from it are read or the scan has reached its end. Use
+ * the right sibling page number value from the current leaf to move on to the
+ * next leaf which holds successive key values for the scan.
  *
  * @param outRid An output value
  *               This is the record id of the next entry that matches the scan
@@ -131,6 +181,7 @@ const void BTreeIndex::scanNext(RecordId &outRid) {
  */
 const void BTreeIndex::endScan() {
   if (!scanExecuting) throw ScanNotInitializedException();
+  scanExecuting = false;
 }
 
 }  // namespace badgerdb
