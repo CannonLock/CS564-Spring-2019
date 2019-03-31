@@ -216,6 +216,9 @@ class Page {
    */
   PageIterator end();
 
+ protected:
+  char data_[DATA_SIZE];
+
  private:
   /**
    * Initializes this page as a new page with no header information or data.
@@ -332,8 +335,6 @@ class Page {
    * well as actual content.
    */
 
-  char data_[DATA_SIZE];
-
   friend class File;
 
   friend class PageFile;
@@ -344,9 +345,9 @@ class Page {
 };
 
 class BlobPage : public Page {
-  RecordId insertNonLeafNode(const struct NonLeafNodeInt node);
-  RecordId insertLeafNode(const struct NonLeafNodeInt node);
-  void *getNode(const RecordId &record_id) const;
+ public:
+  void setNode(const void *node);
+  void *getNode();
 };
 
 static_assert(Page::SIZE > sizeof(PageHeader),

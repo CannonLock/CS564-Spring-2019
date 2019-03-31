@@ -163,7 +163,10 @@ struct NonLeafNodeInt {
 /**
  * @brief Structure for all leaf nodes when the key is of INTEGER type.
  */
+
 struct LeafNodeInt {
+  int level = -1;
+
   /**
    * Stores keys.
    */
@@ -303,8 +306,8 @@ class BTreeIndex {
    * Instance
    * @param attrByteOffset			Offset of attribute, over which
    * index is to be built, in the record
-   * @param attrType						Datatype of attribute
-   * over which index is built
+   * @param attrType						Datatype of
+   * attribute over which index is built
    * @throws  BadIndexInfoException     If the index file already exists for the
    * corresponding attribute, but values in metapage(relationName, attribute
    * byte offset, attribute type etc.) do not match with values received through

@@ -15,6 +15,12 @@ ifeq ($(RHEL_VER), el6)
 endif
 export PATH
 
+test: $(LIB)/bufmgr.a $(OBJ)/filescan.o $(OBJ)/main.o $(OBJ)/btree.o
+	cd src;\
+	rm -r ../relA*;\
+	$(CC) $(CFLAGS) -I. obj/filescan.o obj/btree.o lib/bufmgr.a lib/exceptions.a -o test; 
+	src/test
+
 all: $(LIB)/bufmgr.a $(OBJ)/filescan.o $(OBJ)/main.o $(OBJ)/btree.o
 	cd src;\
 	rm -r ../relA*;\
@@ -38,7 +44,7 @@ $(OBJ)/main.o: src/main.cpp
 	cd $(OBJ)/;\
 	$(CC) $(CFLAGS) -c -I../ ../main.cpp
 
-$(OBJ)/btree.o: src/btree.*
+$(OBJ)/btree.o: src/btree.* src/btreeHelper.cpp
 	cd $(OBJ)/;\
 	$(CC) $(CFLAGS) -c -I../ ../btree.cpp
 

@@ -56,7 +56,7 @@ BTreeIndex::BTreeIndex(const string &relationName, string &outIndexName,
 
   file = new BlobFile(outIndexName, true);
 
-  rootPage = file->allocatePage(indexMetaInfo.rootPageNo);
+  // rootPage = file->allocatePage(indexMetaInfo.rootPageNo);
 
   FileScan fscan(relationName, bufMgr);
   try {
@@ -89,7 +89,7 @@ BTreeIndex::~BTreeIndex() {
   bufMgr->flushFile(file);
   scanExecuting = false;
   delete file;
-  free(file);
+  //  free(file);
 }
 
 /**
@@ -106,19 +106,8 @@ BTreeIndex::~BTreeIndex() {
  *inserted into the index.
  **/
 const void BTreeIndex::insertEntry(const void *key, const RecordId rid) {
-  void *node = rootPage.getNode();
-  if (!node.isLeaf) {
-    int leafNode = searchNode(key);
-  }
-
-  struct LeafNodeInt *curNode = new LeafNodeInt;
-  curNode->keyArray[0] = 1;
-
-  // PageId new_page_number;
-  // Page new_page = file->allocatePage(new_page_number);
-
-  // RecordId rid_new = new_page.insertRecord("123");
-  // file->writePage(new_page_number, new_page);
+  int splittedPageMidval;
+  insertHelper(&rootPage, *(int *) key, rid, &splittedPageMidval);
 }
 
 /**
