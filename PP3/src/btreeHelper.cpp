@@ -8,6 +8,8 @@
 using namespace std;
 using namespace badgerdb;
 
+const int SENTINEL = numeric_limits<int>::min();
+
 const string getIndexName(const string &relationName,
                           const int attrByteOffset) {
   ostringstream idxStr;
@@ -15,58 +17,129 @@ const string getIndexName(const string &relationName,
   return idxStr.str();
 }
 
-int findInsertionIndex(int arr[], int key) {
-  int index = 0;  // binary search
-  return index;
+int findInsertionIndex(int arr[], int len, int key) {
+  for (int i = 0; i < len; i++)
+    if (arr[i] >= key) return i;
+  return len;
 }
 
-NonLeafNodeInt *splitNonLeafNode(NonLeafNodeInt *node, int index) {
-  //               copy last half of origNode to a newNode (malloc / ?)
-  //               clean last half of origNode
-  //               return newNode
-  return nullptr;
+int findInsertionIndexLeaf(LeafNodeInt *node, int key) {
+  int len = INTARRAYLEAFSIZE;
+  RecordId emptyRid{};
+  for (int i = 0; i < INTARRAYLEAFSIZE; i++) {
+    if (node->ridArray[i] == emptyRid) {
+      len = i;
+      break;
+    }
+  }
+  return findInsertionIndex(node->keyArray, len, key);
+}
+
+int findInsertionIndexNonLeaf(NonLeafNodeInt *node, int key) {
+  int len = INTARRAYNONLEAFSIZE + 1;
+  for (int i = 1; i <= INTARRAYNONLEAFSIZE; i++) {
+    if (node->pageNoArray[i] == 0) {
+      len = i;
+      break;
+    }
+  }
+  return findInsertionIndex(node->keyArray, len - 1, key);
+}
+
+NonLeafNodeInt *splitNonLeafNode(NonLeafNodeInt *node, int index,
+                                 bool moveKeyUp) {
+  NonLeafNodeInt *newNode = (NonLeafNodeInt *)calloc(1, sizeof(NonLeafNodeInt));
+  size_t rightsize = INTARRAYNONLEAFSIZE - index;
+  void *keyptr = &(node->keyArray[index]);
+  // set keyArray
+  if (moveKeyUp) {
+    memcpy(&newNode->keyArray, keyptr, rightsize * sizeof(int));
+    memset(keyptr, 0, rightsize * sizeof(int));
+  } else {
+    void *keyptr2 = &(node->keyArray[index + 1]);
+    memcpy(&newNode->keyArray, keyptr2, (rightsize - 1) * sizeof(int));
+    memset(keyptr, 0, rightsize * sizeof(int));
+  }
+  // set pgNoArray
+  void *pgnptr = &(node->pageNoArray[index + 1]);
+  memcpy(&newNode->pageNoArray, pgnptr, rightsize * sizeof(PageId));
+  memset(pgnptr, 0, rightsize * sizeof(PageId));
+  newNode->level = node->level;
+  return newNode;
 }
 
 LeafNodeInt *splitLeafNode(LeafNodeInt *node, int index) {
-  //               copy last half (split by index) of origNode to a newNode
-  //               (malloc / ?) clean last half of origNode return newNode
-  return nullptr;
+  LeafNodeInt *newNode = (LeafNodeInt *)calloc(1, sizeof(LeafNodeInt));
+  size_t leftsize = index;
+  size_t rightsize = INTARRAYLEAFSIZE - index;
+  void *keyptr = &(node->keyArray[index]);
+  void *ridptr = &(node->ridArray[index]);
+  memcpy(&newNode->keyArray, keyptr, rightsize * sizeof(int));
+  memcpy(&newNode->ridArray, ridptr, rightsize * sizeof(RecordId));
+  memset(keyptr, 0, rightsize * sizeof(int));
+  memset(ridptr, 0, rightsize * sizeof(RecordId));
+  newNode->level = node->level;
+  // r s pg no is set outside;
+  return newNode;
 }
 
 void insertToNonLeafNode(NonLeafNodeInt *node, int index, int key,
                          PageId pageID) {
-  return;
+  for (int i = INTARRAYNONLEAFSIZE - 1; i > index; i--) {
+    node->keyArray[i] = node->keyArray[i - 1];
+    node->pageNoArray[i + 1] = node->pageNoArray[i];
+  }
+  node->keyArray[index] = key;
+  node->pageNoArray[index + 1] = pageID;
 }
 
 void insertToLeafNode(LeafNodeInt *node, int index, int key, RecordId rid) {
-  return;
+  for (int i = INTARRAYLEAFSIZE - 1; i > index; i--) {
+    node->keyArray[i] = node->keyArray[i - 1];
+    node->ridArray[i].page_number = node->ridArray[i - 1].page_number;
+    node->ridArray[i].slot_number = node->ridArray[i - 1].slot_number;
+  }
+  node->keyArray[index] = key;
+  node->ridArray[index].page_number = rid.page_number;
+  node->ridArray[index].slot_number = rid.slot_number;
 }
 
 bool isNonLeafNodeFull(NonLeafNodeInt *node) {
-  // if last pageID of current node is occupied (not 0) // full, state in
   // assumption: pageID is zero => unoccupied
-  return false;
+  return node->pageNoArray[INTARRAYNONLEAFSIZE] != 0;
 }
 
 bool isLeafNodeFull(LeafNodeInt *node) {
-  // if last pageID of current node is occupied (not 0) // full, state in
-  // assumption: pageID is zero => unoccupied
-  return false;
+  // assumption: RecordID is zero => unoccupied
+  RecordId emptyRid{};
+  return node->ridArray[INTARRAYLEAFSIZE - 1] != emptyRid;
 }
 
-BlobPage *createPageForNode(void *node) { return nullptr; }
+BlobPage *BTreeIndex::createPageForNode(void *node, PageId *returnPid) {
+  PageId pid;
+  Page *page;
+  BTreeIndex::bufMgr->allocPage(BTreeIndex::file, pid, page);
+  BlobPage *newPage = (BlobPage *)page;
+  *returnPid = pid;
+  newPage->setNode(node);
+  return newPage;
+}
 
 bool isLeaf(BlobPage *page) {
   void *node = page->getNode();
   return *((int *)node) == -1;
 }
 
-BlobPage *getBlogPageByPid(PageId page_id) { return nullptr; }
+BlobPage *BTreeIndex::getBlogPageByPid(PageId page_id) {
+  Page *ret = nullptr;
+  BTreeIndex::bufMgr->readPage(file, page_id, ret);
+  return (BlobPage *)ret;
+}
 
-const BlobPage *insertToLeafPage(BlobPage *origPage, const int key,
-                                 const RecordId &rid, int *midVal) {
+BlobPage *BTreeIndex::insertToLeafPage(BlobPage *origPage, const int key,
+                                       const RecordId &rid, int *midVal) {
   LeafNodeInt *origNode = (struct LeafNodeInt *)origPage->getNode();
-  int index = findInsertionIndex(origNode->keyArray, key);
+  int index = findInsertionIndexLeaf(origNode, key);
 
   if (!isLeafNodeFull(origNode)) {
     insertToLeafNode(origNode, index, key, rid);
@@ -74,18 +147,19 @@ const BlobPage *insertToLeafPage(BlobPage *origPage, const int key,
     return nullptr;
   }
 
-  int capacity = INTARRAYLEAFSIZE;
-  bool insertToLeft = index < capacity / 2;
-  LeafNodeInt *newNode = splitLeafNode(origNode, capacity / 2 + insertToLeft);
+  int middleIndex = (INTARRAYLEAFSIZE - 1) / 2;
+  bool insertToLeft = index < middleIndex;
+  LeafNodeInt *newNode = splitLeafNode(origNode, middleIndex + insertToLeft);
 
   if (insertToLeft)
     insertToLeafNode(origNode, index, key, rid);
   else
-    insertToLeafNode(newNode, index - capacity / 2, key, rid);
+    insertToLeafNode(newNode, index - middleIndex, key, rid);
 
-  BlobPage *newPage = createPageForNode(newNode);
+  PageId pid;
+  BlobPage *newPage = createPageForNode(newNode, &pid);
   newNode->rightSibPageNo = origNode->rightSibPageNo;
-  origNode->rightSibPageNo = newPage->page_number();
+  origNode->rightSibPageNo = pid;  // TODO: page_number ?
 
   origPage->setNode(origNode);
   newPage->setNode(newNode);
@@ -94,14 +168,14 @@ const BlobPage *insertToLeafPage(BlobPage *origPage, const int key,
   return newPage;
 }
 
-const BlobPage *insertHelper(BlobPage *origPage, const int key,
-                             const RecordId rid, int *midVal) {
+BlobPage *BTreeIndex::insertHelper(BlobPage *origPage, const int key,
+                                   const RecordId rid, int *midVal) {
   if (isLeaf(origPage))  // base case
     return insertToLeafPage(origPage, key, rid, midVal);
 
   NonLeafNodeInt *origNode = (NonLeafNodeInt *)origPage->getNode();
 
-  int origChildPageId = findInsertionIndex(origNode->keyArray, key);
+  int origChildPageId = findInsertionIndexNonLeaf(origNode, key);
   BlobPage *origChildPage = getBlogPageByPid(origChildPageId);
 
   // insert key, rid to child and check whether child is splitted
@@ -112,35 +186,36 @@ const BlobPage *insertHelper(BlobPage *origPage, const int key,
   // not split in child
   if (newChildPage == nullptr) return nullptr;
 
-  PageId newChildPageId = newChildPage->page_number();
+  PageId newChildPageId = newChildPage->page_number();  // TODO: change this
 
   // split in child, need to add splitted child to currNode
-  int index = findInsertionIndex(origNode->keyArray, key);
+  int index = findInsertionIndexNonLeaf(origNode, key);
   if (!isNonLeafNodeFull(origNode)) {  // current node is not full
-    insertToNonLeafNode(origNode, index, newChildMidVal, newChildPageId);
+    insertToNonLeafNode(origNode, index, key, newChildPageId);
     origPage->setNode(origNode);
     return nullptr;
   }
 
-  int capacity = INTARRAYNONLEAFSIZE;
+  int middleIndex = (INTARRAYNONLEAFSIZE - 1) / 2;
 
-  bool insertToLeft = index < capacity / 2;
-  NonLeafNodeInt *newNode =
-      splitNonLeafNode(origNode, capacity / 2 + insertToLeft);
-  if (insertToLeft)
-    insertToNonLeafNode(origNode, index, newChildMidVal, newChildPageId);
-  else
-    insertToNonLeafNode(newNode, index - capacity / 2, newChildMidVal,
-                        newChildPageId);
-  origPage->setNode(origNode);
-  BlobPage *newPage = createPageForNode(newNode);
-  *midVal = newNode->keyArray[0];
-  return newPage;
-}
+  bool insertToLeft = index < middleIndex;
 
-int main(int argc, char *argv[]) {
-  cout << getIndexName("123", 5) << endl;
-  cout << findInsertionIndex(nullptr, 1) << endl;
+  // split
+  int splitIndex = middleIndex + insertToLeft;
+  int insertIndex = insertToLeft ? index : index - middleIndex;
 
-  return 0;
+  bool moveKeyUp = !insertToLeft && insertIndex == 0;  // insert to right[0]
+
+  // if we need to move key up, set midVal = key, else key at splited index
+  *midVal = moveKeyUp ? key : origNode->keyArray[splitIndex];
+
+  NonLeafNodeInt *newNode = splitNonLeafNode(origNode, splitIndex, moveKeyUp);
+
+  if (!moveKeyUp) {  // need to insert
+    NonLeafNodeInt *node = insertToLeft ? origNode : newNode;
+    insertToNonLeafNode(node, insertIndex, newChildMidVal, newChildPageId);
+  }
+
+  origPage->setNode(origNode);        // save node to orig page
+  return createPageForNode(newNode);  // return new page
 }

@@ -73,11 +73,13 @@ File::File(const std::string &name, const bool create_new) : filename_(name) {
 }
 
 void File::openIfNeeded(const bool create_new) {
-  if (open_counts_.find(filename_) != open_counts_.end()) {  // exists an entry already
+  if (open_counts_.find(filename_) !=
+      open_counts_.end()) {  // exists an entry already
     ++open_counts_[filename_];
     stream_ = open_streams_[filename_];
   } else {
-    std::ios_base::openmode mode = std::fstream::in | std::fstream::out | std::fstream::binary;
+    std::ios_base::openmode mode =
+        std::fstream::in | std::fstream::out | std::fstream::binary;
     const bool already_exists = exists(filename_);
     if (create_new) {
       // Error if we try to overwrite an existing file.
@@ -184,7 +186,7 @@ Page PageFile::allocatePage(PageId &new_page_number) {
     }
 
     assert((header.num_free_pages == 0) ==
-        (header.first_free_page == Page::INVALID_NUMBER));
+           (header.first_free_page == Page::INVALID_NUMBER));
   } else {
     new_page.set_page_number(header.num_pages);
     new_page_number = new_page.page_number();

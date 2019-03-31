@@ -293,25 +293,35 @@ class BTreeIndex {
    */
   Operator highOp{LT};
 
+  BlobPage *createPageForNode(void *, PageId *returnPid);
+
+  BlobPage *getBlogPageByPid(PageId page_id);
+
+  BlobPage *insertToLeafPage(BlobPage *origPage, const int key,
+                             const RecordId &rid, int *midVal);
+
+  BlobPage *insertHelper(BlobPage *origPage, const int key, const RecordId rid,
+                         int *midVal);
+
  public:
   /**
    * BTreeIndex Constructor.
-   * Check to see if the corresponding index file exists. If so, open the file.
-   * If not, create it and insert entries for every tuple in the base relation
-   * using FileScan class.
+   * Check to see if the corresponding index file exists. If so, open the
+   * file. If not, create it and insert entries for every tuple in the base
+   * relation using FileScan class.
    *
    * @param relationName        Name of file.
    * @param outIndexName        Return the name of index file.
-   * @param bufMgrIn						Buffer Manager
-   * Instance
+   * @param bufMgrIn						Buffer
+   * Manager Instance
    * @param attrByteOffset			Offset of attribute, over which
    * index is to be built, in the record
-   * @param attrType						Datatype of
-   * attribute over which index is built
-   * @throws  BadIndexInfoException     If the index file already exists for the
-   * corresponding attribute, but values in metapage(relationName, attribute
-   * byte offset, attribute type etc.) do not match with values received through
-   * constructor parameters.
+   * @param attrType						Datatype
+   * of attribute over which index is built
+   * @throws  BadIndexInfoException     If the index file already exists for
+   * the corresponding attribute, but values in metapage(relationName,
+   * attribute byte offset, attribute type etc.) do not match with values
+   * received through constructor parameters.
    */
   BTreeIndex(const std::string &relationName, std::string &outIndexName,
              BufMgr *bufMgrIn, const int attrByteOffset,

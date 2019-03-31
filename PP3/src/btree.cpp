@@ -24,7 +24,7 @@ using namespace std;
 namespace badgerdb {
 
 struct IndexMetaInfo indexMetaInfo {};
-BlobPage rootPage;
+BlobPage *root;
 
 /**
  * Constructor
@@ -56,7 +56,12 @@ BTreeIndex::BTreeIndex(const string &relationName, string &outIndexName,
 
   file = new BlobFile(outIndexName, true);
 
-  // rootPage = file->allocatePage(indexMetaInfo.rootPageNo);
+  Page *newPage = root;
+  bufMgr->allocPage(file, indexMetaInfo.rootPageNo, newPage);
+  root = (BlobPage *)newPage;
+
+  LeafNodeInt node{};
+  root->setNode(&node);
 
   FileScan fscan(relationName, bufMgr);
   try {
@@ -107,7 +112,24 @@ BTreeIndex::~BTreeIndex() {
  **/
 const void BTreeIndex::insertEntry(const void *key, const RecordId rid) {
   int splittedPageMidval;
-  insertHelper(&rootPage, *(int *) key, rid, &splittedPageMidval);
+  BlobPage *tmp = insertHelper(root, *(int *)key, rid, &splittedPageMidval);
+
+  // TODO: check if root needs to split
+  if (tmp == nullptr) return;
+
+  PageId page_id;
+  Page *tmpPage;
+  bufMgr->allocPage(file, page_id, tmpPage);
+
+  NonLeafNodeInt *newRoot = (NonLeafNodeInt *)calloc(1, sizeof(NonLeafNodeInt));
+  newRoot->level = 0;  // TODO: increment levels
+  newRoot->keyArray[splittedPageMidval];
+  newRoot->pageNoArray[0] = indexMetaInfo.rootPageNo;
+  newRoot->pageNoArray[1] = tmp->page_number();
+  ((BlobPage *)tmpPage)->setNode(newRoot);
+
+  indexMetaInfo.rootPageNo = page_id;
+  root = (BlobPage *)tmpPage;
 }
 
 /**
