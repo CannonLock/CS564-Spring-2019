@@ -15,9 +15,10 @@ ifeq ($(RHEL_VER), el6)
 endif
 export PATH
 
-build: $(LIB)/bufmgr.a $(OBJ)/filescan.o $(OBJ)/btreeTester.o $(OBJ)/btree.o
+build-test: $(LIB)/bufmgr.a $(OBJ)/filescan.o $(OBJ)/btreeTester.o $(OBJ)/btree.o
 	cd src;\
 	rm -r ../relA*;\
+	rm -r relA*;\
 	$(CC) $(CFLAGS) -I. obj/filescan.o obj/btreeTester.o lib/bufmgr.a lib/exceptions.a -o test; 
 
 test:
@@ -26,6 +27,7 @@ test:
 all: $(LIB)/bufmgr.a $(OBJ)/filescan.o $(OBJ)/main.o $(OBJ)/btree.o
 	cd src;\
 	rm -r ../relA*;\
+	rm -r relA*;\
 	$(CC) $(CFLAGS) -I. obj/filescan.o obj/main.o obj/btree.o lib/bufmgr.a lib/exceptions.a -o badgerdb_main
 
 $(OBJ)/btreeTester.o: src/btreeTester.cpp src/btree.* src/btreeHelper.cpp
@@ -59,7 +61,8 @@ clean:
 	rm -rf $(OBJ)/*.o;\
 	rm -rf $(LIB)/*;\
 	rm -rf src/exceptions/*.o;\
-	rm -f src/badgerdb_main
+	rm -rf src/badgerdb_main
+	rm -rf src/relA*
 
 doc:
 	doxygen Doxyfile

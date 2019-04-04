@@ -10,6 +10,54 @@ using namespace badgerdb;
 
 const int SENTINEL = numeric_limits<int>::min();
 
+bool isLeaf(BlobPage *page) {
+  void *node = page->getNode();
+  return *((int *)node) == -1;
+}
+
+void printLeaf(LeafNodeInt *node) {
+  cout << "Node level: " << node->level << " | Right Pg #： "
+       << node->rightSibPageNo << endl
+       << "Key Array: | ";
+  for (int i = 0; node->ridArray[i].page_number != 0; i++) {
+    cout << node->keyArray[i] << "\t| ";
+  }
+  cout << endl << "Rid Array: | ";
+  for (int i = 0; i < node->ridArray[i].page_number != 0; i++) {
+    RecordId *record = &node->ridArray[i];
+    cout << record->page_number << "," << record->slot_number << " | ";
+  }
+  cout << " |" << endl;
+}
+
+void printNonLeaf(NonLeafNodeInt *a) {
+  cout << a->level << endl << " |-" << a->pageNoArray[0] << "-| ";
+  for (int i = 0; i < INTARRAYNONLEAFSIZE; i++)
+    if (a->keyArray[i] != 0)
+      cout << a->keyArray[i] << " |-" << a->pageNoArray[i + 1] << "-| ";
+  cout << endl;
+}
+
+void BTreeIndex::printTree() {
+  printTreeHelper(BTreeIndex::indexMetaInfo.rootPageNo);
+}
+
+void BTreeIndex::printTreeHelper(PageId pid) {
+  BlobPage *page = BTreeIndex::getBlogPageByPid(pid);
+  if (isLeaf(page)) {  // base case
+    LeafNodeInt *node = (LeafNodeInt *)page->getNode();
+    printLeaf(node);
+    return;
+  }
+
+  NonLeafNodeInt *node = (NonLeafNodeInt *)page->getNode();
+  for (int i = 0; node->pageNoArray[i] != 0; i++) {
+    printTreeHelper(node->pageNoArray[i]);
+    if (i < INTARRAYNONLEAFSIZE)
+      cout << "-- " << node->keyArray[i] << " --" << endl;
+  }
+}
+
 const string getIndexName(const string &relationName,
                           const int attrByteOffset) {
   ostringstream idxStr;
@@ -70,7 +118,6 @@ NonLeafNodeInt *splitNonLeafNode(NonLeafNodeInt *node, int index,
 
 LeafNodeInt *splitLeafNode(LeafNodeInt *node, int index) {
   LeafNodeInt *newNode = (LeafNodeInt *)calloc(1, sizeof(LeafNodeInt));
-  size_t leftsize = index;
   size_t rightsize = INTARRAYLEAFSIZE - index;
   void *keyptr = &(node->keyArray[index]);
   void *ridptr = &(node->ridArray[index]);
@@ -115,39 +162,33 @@ bool isLeafNodeFull(LeafNodeInt *node) {
   return node->ridArray[INTARRAYLEAFSIZE - 1] != emptyRid;
 }
 
-BlobPage *BTreeIndex::createPageForNode(void *node, PageId *returnPid) {
+PageId BTreeIndex::createPageForNode(void *node) {
   PageId pid;
   Page *page;
   BTreeIndex::bufMgr->allocPage(BTreeIndex::file, pid, page);
-  BlobPage *newPage = (BlobPage *)page;
-  *returnPid = pid;
-  newPage->setNode(node);
-  return newPage;
+  ((BlobPage *)page)->setNode(node);
+  return pid;
 }
 
-bool isLeaf(BlobPage *page) {
-  void *node = page->getNode();
-  return *((int *)node) == -1;
-}
-
-BlobPage *BTreeIndex::getBlogPageByPid(PageId page_id) {
+BlobPage *BTreeIndex::getBlogPageByPid(PageId pid) {
   Page *ret = nullptr;
-  BTreeIndex::bufMgr->readPage(file, page_id, ret);
+  bufMgr->readPage(file, pid, ret);
+  // bufMgr->unPinPage(file, pid, true);  // TODO:
   return (BlobPage *)ret;
 }
 
-BlobPage *BTreeIndex::insertToLeafPage(BlobPage *origPage, const int key,
-                                       const RecordId &rid, int *midVal) {
+PageId BTreeIndex::insertToLeafPage(BlobPage *origPage, const int key,
+                                    const RecordId &rid, int *midVal) {
   LeafNodeInt *origNode = (struct LeafNodeInt *)origPage->getNode();
   int index = findInsertionIndexLeaf(origNode, key);
 
   if (!isLeafNodeFull(origNode)) {
     insertToLeafNode(origNode, index, key, rid);
     origPage->setNode(origNode);
-    return nullptr;
+    return 0;
   }
 
-  int middleIndex = (INTARRAYLEAFSIZE - 1) / 2;
+  int middleIndex = INTARRAYLEAFSIZE / 2;
   bool insertToLeft = index < middleIndex;
   LeafNodeInt *newNode = splitLeafNode(origNode, middleIndex + insertToLeft);
 
@@ -156,44 +197,73 @@ BlobPage *BTreeIndex::insertToLeafPage(BlobPage *origPage, const int key,
   else
     insertToLeafNode(newNode, index - middleIndex, key, rid);
 
-  PageId pid;
-  BlobPage *newPage = createPageForNode(newNode, &pid);
+  PageId newPageId = createPageForNode(newNode);
+  BlobPage *newPage = getBlogPageByPid(newPageId);
+
   newNode->rightSibPageNo = origNode->rightSibPageNo;
-  origNode->rightSibPageNo = pid;  // TODO: page_number ?
+  origNode->rightSibPageNo = newPageId;
 
   origPage->setNode(origNode);
   newPage->setNode(newNode);
-
   *midVal = newNode->keyArray[0];
-  return newPage;
+
+  return newPageId;
 }
 
-BlobPage *BTreeIndex::insertHelper(BlobPage *origPage, const int key,
-                                   const RecordId rid, int *midVal) {
+void getEntryByKey(PageId &pid, int &entryIndex, ) {}
+
+// If key does not exist, return the key after it
+PageId BTreeIndex::getLeafPageIdByKey(PageId pid, const int key) {
+  BlobPage *page = getBlogPageByPid(pid);
+
+  if (isLeaf(page))  // base case
+    return pid;
+
+  NonLeafNodeInt *node = (NonLeafNodeInt *)page->getNode();
+  PageId childPageId = node->pageNoArray[findInsertionIndexNonLeaf(node, key)];
+  return getLeafPageIdByKey(childPageId, key);
+}
+
+int BTreeIndex::getEntryIndexByKey(PageId pid, const int key) {
+  BlobPage *page = getBlogPageByPid(pid);
+  LeafNodeInt *node = (LeafNodeInt *)page->getNode();
+  return findInsertionIndexLeaf(node, key);
+}
+
+void BTreeIndex::getNextEntry(PageId &pid, int &entryIndex) {
+  BlobPage *page = getBlogPageByPid(pid);
+  LeafNodeInt *node = (LeafNodeInt *)page->getNode();
+  if (entryIndex > INTARRAYLEAFSIZE ||
+      node->ridArray[entryIndex].page_number == 0) {  // TODO:
+  }
+}
+
+PageId BTreeIndex::insertHelper(PageId origPageId, const int key,
+                                const RecordId rid, int *midVal) {
+  BlobPage *origPage = getBlogPageByPid(origPageId);
+
   if (isLeaf(origPage))  // base case
     return insertToLeafPage(origPage, key, rid, midVal);
 
   NonLeafNodeInt *origNode = (NonLeafNodeInt *)origPage->getNode();
 
-  int origChildPageId = findInsertionIndexNonLeaf(origNode, key);
-  BlobPage *origChildPage = getBlogPageByPid(origChildPageId);
+  PageId origChildPageId =
+      origNode->pageNoArray[findInsertionIndexNonLeaf(origNode, key)];
 
   // insert key, rid to child and check whether child is splitted
   int newChildMidVal;
-  const BlobPage *newChildPage =
-      insertHelper(origChildPage, key, rid, &newChildMidVal);
+  PageId newChildPageId =
+      insertHelper(origChildPageId, key, rid, &newChildMidVal);
 
   // not split in child
-  if (newChildPage == nullptr) return nullptr;
-
-  PageId newChildPageId = newChildPage->page_number();  // TODO: change this
+  if (newChildPageId == 0) return 0;
 
   // split in child, need to add splitted child to currNode
-  int index = findInsertionIndexNonLeaf(origNode, key);
+  int index = findInsertionIndexNonLeaf(origNode, newChildMidVal);
   if (!isNonLeafNodeFull(origNode)) {  // current node is not full
-    insertToNonLeafNode(origNode, index, key, newChildPageId);
+    insertToNonLeafNode(origNode, index, newChildMidVal, newChildPageId);
     origPage->setNode(origNode);
-    return nullptr;
+    return 0;
   }
 
   int middleIndex = (INTARRAYNONLEAFSIZE - 1) / 2;
@@ -207,7 +277,7 @@ BlobPage *BTreeIndex::insertHelper(BlobPage *origPage, const int key,
   bool moveKeyUp = !insertToLeft && insertIndex == 0;  // insert to right[0]
 
   // if we need to move key up, set midVal = key, else key at splited index
-  *midVal = moveKeyUp ? key : origNode->keyArray[splitIndex];
+  *midVal = moveKeyUp ? newChildMidVal : origNode->keyArray[splitIndex];
 
   NonLeafNodeInt *newNode = splitNonLeafNode(origNode, splitIndex, moveKeyUp);
 

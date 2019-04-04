@@ -293,17 +293,28 @@ class BTreeIndex {
    */
   Operator highOp{LT};
 
-  BlobPage *createPageForNode(void *, PageId *returnPid);
+  struct IndexMetaInfo indexMetaInfo {};
+
+  PageId createPageForNode(void *);
 
   BlobPage *getBlogPageByPid(PageId page_id);
 
-  BlobPage *insertToLeafPage(BlobPage *origPage, const int key,
-                             const RecordId &rid, int *midVal);
+  PageId insertToLeafPage(BlobPage *page, const int key, const RecordId &rid,
+                          int *midVal);
 
-  BlobPage *insertHelper(BlobPage *origPage, const int key, const RecordId rid,
-                         int *midVal);
+  PageId insertHelper(PageId pid, const int key, const RecordId rid,
+                      int *midVal);
+
+  void printTreeHelper(PageId pid);
+
+  PageId getLeafPageIdByKey(PageId pid, const int key);
+
+  int getEntryIndexByKey(PageId pid, const int key);
+
+  void BTreeIndex::getNextEntry(PageId &pid, int &entryIndex);
 
  public:
+  void printTree();
   /**
    * BTreeIndex Constructor.
    * Check to see if the corresponding index file exists. If so, open the

@@ -23,9 +23,6 @@ using namespace std;
 
 namespace badgerdb {
 
-struct IndexMetaInfo indexMetaInfo {};
-BlobPage *root;
-
 /**
  * Constructor
  *
@@ -56,9 +53,9 @@ BTreeIndex::BTreeIndex(const string &relationName, string &outIndexName,
 
   file = new BlobFile(outIndexName, true);
 
-  Page *newPage = root;
+  Page *newPage;
   bufMgr->allocPage(file, indexMetaInfo.rootPageNo, newPage);
-  root = (BlobPage *)newPage;
+  BlobPage *root = (BlobPage *)newPage;
 
   LeafNodeInt node{};
   root->setNode(&node);
@@ -112,24 +109,23 @@ BTreeIndex::~BTreeIndex() {
  **/
 const void BTreeIndex::insertEntry(const void *key, const RecordId rid) {
   int splittedPageMidval;
-  BlobPage *tmp = insertHelper(root, *(int *)key, rid, &splittedPageMidval);
+  PageId newPageId = insertHelper(indexMetaInfo.rootPageNo, *(int *)key, rid,
+                                  &splittedPageMidval);
 
-  // TODO: check if root needs to split
-  if (tmp == nullptr) return;
+  if (newPageId == 0) return;
 
-  PageId page_id;
-  Page *tmpPage;
-  bufMgr->allocPage(file, page_id, tmpPage);
+  PageId pid;
+  Page *newPage;
+  bufMgr->allocPage(file, pid, newPage);
 
   NonLeafNodeInt *newRoot = (NonLeafNodeInt *)calloc(1, sizeof(NonLeafNodeInt));
-  newRoot->level = 0;  // TODO: increment levels
-  newRoot->keyArray[splittedPageMidval];
+  newRoot->level = 0;
+  newRoot->keyArray[0] = splittedPageMidval;
   newRoot->pageNoArray[0] = indexMetaInfo.rootPageNo;
-  newRoot->pageNoArray[1] = tmp->page_number();
-  ((BlobPage *)tmpPage)->setNode(newRoot);
+  newRoot->pageNoArray[1] = newPageId;
+  ((BlobPage *)newPage)->setNode(newRoot);
 
-  indexMetaInfo.rootPageNo = page_id;
-  root = (BlobPage *)tmpPage;
+  indexMetaInfo.rootPageNo = pid;
 }
 
 /**
@@ -160,6 +156,11 @@ const void BTreeIndex::startScan(const void *lowValParm,
   highOp = highOpParm;
 
   scanExecuting = true;
+
+  currentPageNum = getLeafPageIdByKey(indexMetaInfo.rootPageNo, lowValInt);
+  bufMgr->readPage(file, currentPageNum, currentPageData);
+  nextEntry = getEntryIndexByKey(currentPageNum, lowValInt);
+  if (lowOp == GT) getNextEntry(currentPageNum, nextEntry);
 }
 
 /**

@@ -16,31 +16,6 @@
 //              |             |
 //            [10, 11] -> [12, 13, 15]
 
-void printLeaf(LeafNodeInt *node) {
-  cout << "Node level: " << node->level << " | Right Pg #： "
-       << node->rightSibPageNo << endl
-       << "Key Array: ";
-  for (int i = 0; i < 7; i++) {
-    // if (node->keyArray[i] != 0)
-    cout << node->keyArray[i] << " | ";
-  }
-  cout << endl << "Rid Array: " << endl;
-  for (int i = 0; i < 7; i++) {
-    RecordId *record = &node->ridArray[i];
-    // if (record->page_number != 0)
-    cout << record->page_number << "|" << record->slot_number << " | ";
-  }
-  cout << endl;
-}
-
-void printNonLeaf(NonLeafNodeInt *a) {
-  cout << a->level << endl << " |-" << a->pageNoArray[0] << "-| ";
-  for (int i = 0; i < 7; i++)
-    // if (a->keyArray[i] != 0)
-    cout << a->keyArray[i] << " |-" << a->pageNoArray[i + 1] << "-| ";
-  cout << endl;
-}
-
 int main(int argc, char *argv[]) {
   // cout << getIndexName("adasd", 5) << endl;
   // cout << findInsertionIndex(nullptr, 1) << &"123" << endl << "123" <<
