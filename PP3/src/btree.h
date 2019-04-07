@@ -311,7 +311,7 @@ class BTreeIndex {
 
   int getEntryIndexByKey(PageId pid, const int key);
 
-  void BTreeIndex::getNextEntry(PageId &pid, int &entryIndex);
+  void getNextEntry(PageId &pid, int &entryIndex);
 
  public:
   void printTree();

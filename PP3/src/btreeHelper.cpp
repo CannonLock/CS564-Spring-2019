@@ -8,8 +8,6 @@
 using namespace std;
 using namespace badgerdb;
 
-const int SENTINEL = numeric_limits<int>::min();
-
 bool isLeaf(BlobPage *page) {
   void *node = page->getNode();
   return *((int *)node) == -1;
@@ -209,8 +207,6 @@ PageId BTreeIndex::insertToLeafPage(BlobPage *origPage, const int key,
 
   return newPageId;
 }
-
-void getEntryByKey(PageId &pid, int &entryIndex, ) {}
 
 // If key does not exist, return the key after it
 PageId BTreeIndex::getLeafPageIdByKey(PageId pid, const int key) {
