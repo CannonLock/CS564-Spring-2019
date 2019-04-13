@@ -15,24 +15,10 @@ ifeq ($(RHEL_VER), el6)
 endif
 export PATH
 
-build-test: $(LIB)/bufmgr.a $(OBJ)/filescan.o $(OBJ)/btreeTester.o $(OBJ)/btree.o
-	cd src;\
-	rm -r ../relA*;\
-	rm -r relA*;\
-	$(CC) $(CFLAGS) -I. obj/filescan.o obj/btreeTester.o lib/bufmgr.a lib/exceptions.a -o test; 
-
-test:
-	src/test;
-
 all: $(LIB)/bufmgr.a $(OBJ)/filescan.o $(OBJ)/main.o $(OBJ)/btree.o
 	cd src;\
 	rm -r ../relA*;\
-	rm -r relA*;\
 	$(CC) $(CFLAGS) -I. obj/filescan.o obj/main.o obj/btree.o lib/bufmgr.a lib/exceptions.a -o badgerdb_main
-
-$(OBJ)/btreeTester.o: src/btreeTester.cpp src/btree.* src/btreeHelper.cpp
-	cd $(OBJ)/;\
-	$(CC) $(CFLAGS) -c -I../ ../btreeTester.cpp
 
 $(LIB)/bufmgr.a: $(LIB)/exceptions.a src/buffer.* src/file.* src/page.* src/bufHashTbl.*
 	cd $(OBJ)/;\
@@ -52,7 +38,7 @@ $(OBJ)/main.o: src/main.cpp
 	cd $(OBJ)/;\
 	$(CC) $(CFLAGS) -c -I../ ../main.cpp
 
-$(OBJ)/btree.o: src/btree.* src/btreeHelper.cpp
+$(OBJ)/btree.o: src/btree.*
 	cd $(OBJ)/;\
 	$(CC) $(CFLAGS) -c -I../ ../btree.cpp
 
@@ -61,8 +47,7 @@ clean:
 	rm -rf $(OBJ)/*.o;\
 	rm -rf $(LIB)/*;\
 	rm -rf src/exceptions/*.o;\
-	rm -rf src/badgerdb_main
-	rm -rf src/relA*
+	rm -f src/badgerdb_main
 
 doc:
 	doxygen Doxyfile
