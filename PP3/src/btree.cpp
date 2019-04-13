@@ -160,13 +160,6 @@ const void BTreeIndex::startScan(const void *lowValParm,
   scanExecuting = true;
 
   initScan();
-
-  
-
-  // currentPageNum = getLeafPageIdByKey(indexMetaInfo.rootPageNo, lowValInt);
-  // bufMgr->readPage(file, currentPageNum, currentPageData);
-  // nextEntry = getEntryIndexByKey(currentPageNum, lowValInt);
-  // if (lowOp == GT) getNextEntry(currentPageNum, nextEntry);
 }
 
 /**
@@ -188,7 +181,16 @@ const void BTreeIndex::startScan(const void *lowValParm,
  */
 const void BTreeIndex::scanNext(RecordId &outRid) {
   if (!scanExecuting) throw ScanNotInitializedException();
-  //int index = getNextEntry();
+  LeafNodeInt *node = (LeafNodeInt *)((BlobPage *)currentPageData)->getNode();
+
+  outRid.page_number = node->ridArray[nextEntry].page_number;
+  outRid.slot_number = node->ridArray[nextEntry].slot_number;
+
+  int val = node->keyArray[nextEntry];
+  if (val > highValInt) throw IndexScanCompletedException();
+  if (val == highValInt && highOp == LT) throw IndexScanCompletedException();
+
+  getNextEntry();
 }
 
 /**

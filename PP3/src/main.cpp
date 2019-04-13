@@ -90,7 +90,6 @@ void errorTests();
 void deleteRelation();
 
 int main(int argc, char **argv) {
-
   std::cout << "leaf size:" << INTARRAYLEAFSIZE
             << " non-leaf size:" << INTARRAYNONLEAFSIZE << std::endl;
 
@@ -383,13 +382,13 @@ int intScan(BTreeIndex *index, int lowVal, Operator lowOp, int highVal,
           reinterpret_cast<const RECORD *>(curPage->getRecord(scanRid).data()));
       bufMgr->unPinPage(file1, scanRid.page_number, false);
 
-      if (numResults < 5) {
-        std::cout << "at:" << scanRid.page_number << "," << scanRid.slot_number;
-        std::cout << " -->:" << myRec.i << ":" << myRec.d << ":" << myRec.s
-                  << ":" << std::endl;
-      } else if (numResults == 5) {
-        std::cout << "..." << std::endl;
-      }
+      // if (numResults < 5) {
+      std::cout << "at:" << scanRid.page_number << "," << scanRid.slot_number;
+      std::cout << " -->:" << myRec.i << ":" << myRec.d << ":" << myRec.s << ":"
+                << std::endl;
+      // } else if (numResults == 5) {
+      // std::cout << "..." << std::endl;
+      // }
     } catch (IndexScanCompletedException e) {
       break;
     }
