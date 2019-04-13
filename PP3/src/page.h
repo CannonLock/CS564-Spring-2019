@@ -216,15 +216,6 @@ class Page {
    */
   PageIterator end();
 
- protected:
-  char data_[DATA_SIZE];
-
- private:
-  /**
-   * Initializes this page as a new page with no header information or data.
-   */
-  void initialize();
-
   /**
    * Sets this page's number in its file.
    *
@@ -233,6 +224,14 @@ class Page {
   void set_page_number(const PageId new_page_number) {
     header_.current_page_number = new_page_number;
   }
+
+ protected:
+  char data_[DATA_SIZE];
+
+  /**
+   * Initializes this page as a new page with no header information or data.
+   */
+  void initialize();
 
   /**
    * Sets the number of the next used page after this page in its file.

@@ -218,7 +218,11 @@ PageIterator Page::end() {
   return PageIterator(this, end_record_id);
 }
 
-void BlobPage::setNode(const void *node) { memcpy(&data_, node, SIZE); }
+void BlobPage::setNode(const void *node) {
+   memcpy(&data_, node, SIZE);
+   if((int*)node == -1)
+      set_next_page_number(((LeafNodeInt*)node)->rightSibPageNo);
+}
 
 void *BlobPage::getNode() { return &data_; }
 

@@ -307,11 +307,13 @@ class BTreeIndex {
 
   void printTreeHelper(PageId pid);
 
-  PageId getLeafPageIdByKey(PageId pid, const int key);
+  void getLeafPageIdByKey(PageId pid, const int key);
 
-  int getEntryIndexByKey(PageId pid, const int key);
+  void getEntryIndexByKey(const int key, bool includeCurrentKey);
 
-  void getNextEntry(PageId &pid, int &entryIndex);
+  void getNextEntry();
+
+  void initScan();
 
  public:
   void printTree();

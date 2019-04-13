@@ -55,6 +55,7 @@ BTreeIndex::BTreeIndex(const string &relationName, string &outIndexName,
 
   Page *newPage;
   bufMgr->allocPage(file, indexMetaInfo.rootPageNo, newPage);
+  newPage->set_page_number(indexMetaInfo.rootPageNo);
   BlobPage *root = (BlobPage *)newPage;
 
   LeafNodeInt node{};
@@ -117,6 +118,7 @@ const void BTreeIndex::insertEntry(const void *key, const RecordId rid) {
   PageId pid;
   Page *newPage;
   bufMgr->allocPage(file, pid, newPage);
+  newPage->set_page_number(pid);
 
   NonLeafNodeInt *newRoot = (NonLeafNodeInt *)calloc(1, sizeof(NonLeafNodeInt));
   newRoot->level = 0;
@@ -157,10 +159,14 @@ const void BTreeIndex::startScan(const void *lowValParm,
 
   scanExecuting = true;
 
-  currentPageNum = getLeafPageIdByKey(indexMetaInfo.rootPageNo, lowValInt);
-  bufMgr->readPage(file, currentPageNum, currentPageData);
-  nextEntry = getEntryIndexByKey(currentPageNum, lowValInt);
-  if (lowOp == GT) getNextEntry(currentPageNum, nextEntry);
+  initScan();
+
+  
+
+  // currentPageNum = getLeafPageIdByKey(indexMetaInfo.rootPageNo, lowValInt);
+  // bufMgr->readPage(file, currentPageNum, currentPageData);
+  // nextEntry = getEntryIndexByKey(currentPageNum, lowValInt);
+  // if (lowOp == GT) getNextEntry(currentPageNum, nextEntry);
 }
 
 /**
@@ -182,6 +188,7 @@ const void BTreeIndex::startScan(const void *lowValParm,
  */
 const void BTreeIndex::scanNext(RecordId &outRid) {
   if (!scanExecuting) throw ScanNotInitializedException();
+  //int index = getNextEntry();
 }
 
 /**
