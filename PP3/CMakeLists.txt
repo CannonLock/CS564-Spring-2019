@@ -71,4 +71,4 @@ add_executable(PP3
     src/page.cpp
     src/page.h
     src/page_iterator.h
-        src/types.h src/btreeHelper.cpp)
+        src/types.h)

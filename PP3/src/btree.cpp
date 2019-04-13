@@ -41,23 +41,7 @@ void setNode(Page *page, void *node) {
   memcpy(page, node, Page::SIZE);
 }
 
-NonLeafNodeInt *getNonLeafNodeFromPage(Page *page) {
-  return (NonLeafNodeInt *) page;
-}
-
-LeafNodeInt *getLeafNodeFromPage(Page *page) {
-  return (LeafNodeInt *) page;
-}
-
-const string getIndexName(const string &relationName,
-                          const int attrByteOffset) {
-  ostringstream idxStr;
-  idxStr << relationName << ',' << attrByteOffset;
-  return idxStr.str();
-}
-
-int findArrayIndex(const int *arr, int len, int key,
-                   bool includeCurrentKey = true) {
+int findArrayIndex(const int *arr, int len, int key, bool includeCurrentKey = true) {
   if (includeCurrentKey) {
     for (int i = 0; i < len; i++)
       if (arr[i] >= key) return i;
@@ -69,10 +53,8 @@ int findArrayIndex(const int *arr, int len, int key,
 }
 
 int getLeafLen(LeafNodeInt *node) {
-  RecordId emptyRid{};
-
   for (int i = 0; i < INTARRAYLEAFSIZE; i++)
-    if (node->ridArray[i] == emptyRid) return i;
+    if (node->ridArray[i] == RecordId{}) return i;
 
   return INTARRAYLEAFSIZE;
 }
@@ -109,25 +91,32 @@ int findScanIndexLeaf(LeafNodeInt *node, int key, bool includeCurrentKey) {
   return findArrayIndex(node->keyArray, getLeafLen(node), key, includeCurrentKey);
 }
 
-NonLeafNodeInt *splitNonLeafNode(NonLeafNodeInt *node, int index,
-                                 bool moveKeyUp) {
-  NonLeafNodeInt *newNode = new NonLeafNodeInt();
-  size_t rightsize = INTARRAYNONLEAFSIZE - index;
-  void *keyptr = &(node->keyArray[index]);
-  // set keyArray
-  if (moveKeyUp) {
-    memcpy(&newNode->keyArray, keyptr, rightsize * sizeof(int));
-    memset(keyptr, 0, rightsize * sizeof(int));
-  } else {
-    void *keyptr2 = &(node->keyArray[index + 1]);
-    memcpy(&newNode->keyArray, keyptr2, (rightsize - 1) * sizeof(int));
-    memset(keyptr, 0, rightsize * sizeof(int));
+PageId BTreeIndex::createPageForNode(void *node) {
+  PageId pid;
+  Page *page;
+  bufMgr->allocPage(file, pid, page);
+  setNode(page, node);
+  bufMgr->unPinPage(file, pid, true);
+  return pid;
+}
+
+Page *BTreeIndex::getPageByPid(PageId pid) {
+  Page *page = nullptr;
+  bufMgr->readPage(file, pid, page);
+  return page;
+}
+
+/******************************* Leaf Insert  *******************************/
+
+void insertToLeafNode(LeafNodeInt *node, int index, int key, RecordId rid) {
+  for (int i = INTARRAYLEAFSIZE - 1; i > index; i--) {
+    node->keyArray[i] = node->keyArray[i - 1];
+    node->ridArray[i].page_number = node->ridArray[i - 1].page_number;
+    node->ridArray[i].slot_number = node->ridArray[i - 1].slot_number;
   }
-  // set pgNoArray
-  void *pgnptr = &(node->pageNoArray[index + 1]);
-  memcpy(&newNode->pageNoArray, pgnptr, rightsize * sizeof(PageId));
-  memset(pgnptr, 0, rightsize * sizeof(PageId));
-  return newNode;
+  node->keyArray[index] = key;
+  node->ridArray[index].page_number = rid.page_number;
+  node->ridArray[index].slot_number = rid.slot_number;
 }
 
 LeafNodeInt *splitLeafNode(LeafNodeInt *node, int index) {
@@ -142,54 +131,12 @@ LeafNodeInt *splitLeafNode(LeafNodeInt *node, int index) {
   return newNode;
 }
 
-void insertToNonLeafNode(NonLeafNodeInt *node, int index, int key,
-                         PageId pageID) {
-  for (int i = INTARRAYNONLEAFSIZE - 1; i > index; i--) {
-    node->keyArray[i] = node->keyArray[i - 1];
-    node->pageNoArray[i + 1] = node->pageNoArray[i];
-  }
-  node->keyArray[index] = key;
-  node->pageNoArray[index + 1] = pageID;
-}
-
-void insertToLeafNode(LeafNodeInt *node, int index, int key, RecordId rid) {
-  for (int i = INTARRAYLEAFSIZE - 1; i > index; i--) {
-    node->keyArray[i] = node->keyArray[i - 1];
-    node->ridArray[i].page_number = node->ridArray[i - 1].page_number;
-    node->ridArray[i].slot_number = node->ridArray[i - 1].slot_number;
-  }
-  node->keyArray[index] = key;
-  node->ridArray[index].page_number = rid.page_number;
-  node->ridArray[index].slot_number = rid.slot_number;
-}
-
-PageId BTreeIndex::createPageForNode(void *node) {
-  PageId pid;
-  Page *page;
-  bufMgr->allocPage(file, pid, page);
-  page->set_page_number(pid);
-  setNode(page, node);
-  bufMgr->unPinPage(file, pid, true);
-  return pid;
-}
-
-Page *BTreeIndex::getPageByPid(PageId pid) {
-  Page *page = nullptr;
-  bufMgr->readPage(file, pid, page);
-  return (Page *) page;
-}
-
-/*******************************  Insert  *******************************/
-
-PageId BTreeIndex::insertToLeafPage(Page *origPage, PageId origPageId,
-                                    const int key, const RecordId &rid,
-                                    int *midVal) {
-  LeafNodeInt *origNode = getLeafNodeFromPage(origPage);
+PageId BTreeIndex::insertToLeafPage(LeafNodeInt *origNode, PageId origPageId,
+                                    const int key, const RecordId &rid, int *midVal) {
   int index = findInsertionIndexLeaf(origNode, key);
 
   if (!isLeafNodeFull(origNode)) {
     insertToLeafNode(origNode, index, key, rid);
-    setNode(origPage, origNode);
     bufMgr->unPinPage(file, origPageId, true);
     return 0;
   }
@@ -209,7 +156,6 @@ PageId BTreeIndex::insertToLeafPage(Page *origPage, PageId origPageId,
   newNode->rightSibPageNo = origNode->rightSibPageNo;
   origNode->rightSibPageNo = newPageId;
 
-  setNode(origPage, origNode);
   setNode(newPage, newNode);
   *midVal = newNode->keyArray[0];
 
@@ -219,22 +165,51 @@ PageId BTreeIndex::insertToLeafPage(Page *origPage, PageId origPageId,
   return newPageId;
 }
 
+/******************************* Nonleaf Insert  *******************************/
+
+void insertToNonLeafNode(NonLeafNodeInt *node, int index, int key, PageId pageID) {
+  for (int i = INTARRAYNONLEAFSIZE - 1; i > index; i--) {
+    node->keyArray[i] = node->keyArray[i - 1];
+    node->pageNoArray[i + 1] = node->pageNoArray[i];
+  }
+  node->keyArray[index] = key;
+  node->pageNoArray[index + 1] = pageID;
+}
+
+NonLeafNodeInt *splitNonLeafNode(NonLeafNodeInt *node, int index, bool moveKeyUp) {
+  NonLeafNodeInt *newNode = new NonLeafNodeInt();
+  size_t rightsize = INTARRAYNONLEAFSIZE - index;
+  void *keyptr = &(node->keyArray[index]);
+  // set keyArray
+  if (moveKeyUp) {
+    memcpy(&newNode->keyArray, keyptr, rightsize * sizeof(int));
+    memset(keyptr, 0, rightsize * sizeof(int));
+  } else {
+    void *keyptr2 = &(node->keyArray[index + 1]);
+    memcpy(&newNode->keyArray, keyptr2, (rightsize - 1) * sizeof(int));
+    memset(keyptr, 0, rightsize * sizeof(int));
+  }
+  // set pgNoArray
+  void *pgnptr = &(node->pageNoArray[index + 1]);
+  memcpy(&newNode->pageNoArray, pgnptr, rightsize * sizeof(PageId));
+  memset(pgnptr, 0, rightsize * sizeof(PageId));
+  return newNode;
+}
+
 PageId BTreeIndex::insertHelper(PageId origPageId, const int key,
                                 const RecordId rid, int *midVal) {
   Page *origPage = getPageByPid(origPageId);
 
   if (isLeaf(origPage))  // base case
-    return insertToLeafPage(origPage, origPageId, key, rid, midVal);
+    return insertToLeafPage((LeafNodeInt *) origPage, origPageId, key, rid, midVal);
 
-  NonLeafNodeInt *origNode = getNonLeafNodeFromPage(origPage);
+  NonLeafNodeInt *origNode = (NonLeafNodeInt *) origPage;
 
-  PageId origChildPageId =
-      origNode->pageNoArray[findIndexNonLeaf(origNode, key)];
+  PageId origChildPageId = origNode->pageNoArray[findIndexNonLeaf(origNode, key)];
 
   // insert key, rid to child and check whether child is splitted
   int newChildMidVal;
-  PageId newChildPageId =
-      insertHelper(origChildPageId, key, rid, &newChildMidVal);
+  PageId newChildPageId = insertHelper(origChildPageId, key, rid, &newChildMidVal);
 
   // not split in child
   if (newChildPageId == 0) {
@@ -246,7 +221,6 @@ PageId BTreeIndex::insertHelper(PageId origPageId, const int key,
   int index = findIndexNonLeaf(origNode, newChildMidVal);
   if (!isNonLeafNodeFull(origNode)) {  // current node is not full
     insertToNonLeafNode(origNode, index, newChildMidVal, newChildPageId);
-    setNode(origPage, origNode);
     bufMgr->unPinPage(file, origPageId, true);
     return 0;
   }
@@ -271,7 +245,6 @@ PageId BTreeIndex::insertHelper(PageId origPageId, const int key,
     insertToNonLeafNode(node, insertIndex, newChildMidVal, newChildPageId);
   }
 
-  setNode(origPage, origNode);  // save node to orig page
   bufMgr->unPinPage(file, origPageId, true);
   return createPageForNode(newNode);  // return new page
 }
@@ -282,7 +255,7 @@ void BTreeIndex::initPageId() {
   currentPageData = getPageByPid(currentPageNum);
   if (isLeaf(currentPageData)) return;
 
-  NonLeafNodeInt *node = getNonLeafNodeFromPage(currentPageData);
+  NonLeafNodeInt *node = (NonLeafNodeInt *) currentPageData;
 
   bufMgr->unPinPage(file, currentPageNum, false);
   currentPageNum = node->pageNoArray[findIndexNonLeaf(node, lowValInt)];
@@ -297,7 +270,7 @@ void BTreeIndex::moveToNextPage(LeafNodeInt *node) {
 }
 
 void BTreeIndex::initEntryIndex() {
-  LeafNodeInt *node = getLeafNodeFromPage(currentPageData);
+  LeafNodeInt *node = (LeafNodeInt *) currentPageData;
   int entryIndex = findScanIndexLeaf(node, lowValInt, lowOp == GTE);
   if (-1 == entryIndex) {
     moveToNextPage(node);
@@ -308,7 +281,7 @@ void BTreeIndex::initEntryIndex() {
 
 void BTreeIndex::setNextEntry() {
   nextEntry++;
-  LeafNodeInt *node = getLeafNodeFromPage(currentPageData);
+  LeafNodeInt *node = (LeafNodeInt *) currentPageData;
   if (nextEntry >= INTARRAYLEAFSIZE ||
       node->ridArray[nextEntry].page_number == 0) {
     moveToNextPage(node);
@@ -337,7 +310,10 @@ BTreeIndex::BTreeIndex(const string &relationName, string &outIndexName,
     : attrByteOffset(attrByteOffset),
       bufMgr(bufMgrIn),
       attributeType(attrType) {
-  outIndexName = getIndexName(relationName, attrByteOffset);
+
+  ostringstream idx_str;
+  idx_str << relationName << ',' << attrByteOffset;
+  outIndexName = idx_str.str();
 
   relationName.copy(indexMetaInfo.relationName, 20, 0);
   indexMetaInfo.attrByteOffset = attrByteOffset;
@@ -401,23 +377,15 @@ BTreeIndex::~BTreeIndex() {
  **/
 const void BTreeIndex::insertEntry(const void *key, const RecordId rid) {
   int splittedPageMidval;
-  PageId newPageId = insertHelper(indexMetaInfo.rootPageNo, *(int *)key, rid,
-                                  &splittedPageMidval);
-
-  if (newPageId == 0) return;
-
-  PageId pid;
-  Page *newPage;
-  bufMgr->allocPage(file, pid, newPage);
+  PageId pid = insertHelper(indexMetaInfo.rootPageNo, *(int *) key, rid, &splittedPageMidval);
+  if (pid == 0) return;
 
   NonLeafNodeInt *newRoot = new NonLeafNodeInt();
   newRoot->keyArray[0] = splittedPageMidval;
   newRoot->pageNoArray[0] = indexMetaInfo.rootPageNo;
-  newRoot->pageNoArray[1] = newPageId;
-  setNode(newPage, newRoot);
-  bufMgr->unPinPage(file, pid, true);
+  newRoot->pageNoArray[1] = pid;
 
-  indexMetaInfo.rootPageNo = pid;
+  indexMetaInfo.rootPageNo = createPageForNode(newRoot);
 }
 
 /**
@@ -474,13 +442,12 @@ const void BTreeIndex::startScan(const void *lowValParm,
  */
 const void BTreeIndex::scanNext(RecordId &outRid) {
   if (!scanExecuting) throw ScanNotInitializedException();
-  LeafNodeInt *node = getLeafNodeFromPage(currentPageData);
 
-  outRid.page_number = node->ridArray[nextEntry].page_number;
-  outRid.slot_number = node->ridArray[nextEntry].slot_number;
-
-  if (node->ridArray[nextEntry] == RecordId{}) throw IndexScanCompletedException();
+  LeafNodeInt *node = (LeafNodeInt *) currentPageData;
+  outRid = node->ridArray[nextEntry];
   int val = node->keyArray[nextEntry];
+
+  if (outRid == RecordId{}) throw IndexScanCompletedException();
   if (val > highValInt) throw IndexScanCompletedException();
   if (val == highValInt && highOp == LT) throw IndexScanCompletedException();
   setNextEntry();
