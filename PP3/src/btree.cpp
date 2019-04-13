@@ -55,11 +55,11 @@ BTreeIndex::BTreeIndex(const string &relationName, string &outIndexName,
 
   Page *newPage;
   bufMgr->allocPage(file, indexMetaInfo.rootPageNo, newPage);
-  newPage->set_page_number(indexMetaInfo.rootPageNo);
   BlobPage *root = (BlobPage *)newPage;
 
   LeafNodeInt node{};
   root->setNode(&node);
+  bufMgr->unPinPage(file, indexMetaInfo.rootPageNo, true);
 
   FileScan fscan(relationName, bufMgr);
   try {
@@ -125,6 +125,7 @@ const void BTreeIndex::insertEntry(const void *key, const RecordId rid) {
   newRoot->pageNoArray[0] = indexMetaInfo.rootPageNo;
   newRoot->pageNoArray[1] = newPageId;
   ((BlobPage *)newPage)->setNode(newRoot);
+  bufMgr->unPinPage(file, pid, true);
 
   indexMetaInfo.rootPageNo = pid;
 }
@@ -205,6 +206,7 @@ const void BTreeIndex::scanNext(RecordId &outRid) {
 const void BTreeIndex::endScan() {
   if (!scanExecuting) throw ScanNotInitializedException();
   scanExecuting = false;
+  bufMgr->unPinPage(file, currentPageNum, false);
 }
 
 }  // namespace badgerdb

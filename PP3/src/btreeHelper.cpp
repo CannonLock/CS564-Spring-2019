@@ -11,7 +11,7 @@ using namespace badgerdb;
 /** Generic Helper*/
 
 bool isLeaf(Page *page) {
-  void *node = ((BlobPage *) page)->getNode();
+  void *node = ((BlobPage *)page)->getNode();
   return *((int *)node) == -1;
 }
 
@@ -156,24 +156,28 @@ PageId BTreeIndex::createPageForNode(void *node) {
   BTreeIndex::bufMgr->allocPage(BTreeIndex::file, pid, page);
   page->set_page_number(pid);
   ((BlobPage *)page)->setNode(node);
+  bufMgr->unPinPage(file, pid, true);
   return pid;
 }
 
 BlobPage *BTreeIndex::getBlogPageByPid(PageId pid) {
   Page *ret = nullptr;
   bufMgr->readPage(file, pid, ret);
-  // bufMgr->unPinPage(file, pid, true);  // TODO:
   return (BlobPage *)ret;
 }
 
-PageId BTreeIndex::insertToLeafPage(BlobPage *origPage, const int key,
-                                    const RecordId &rid, int *midVal) {
+/*******************************  Insert  *******************************/
+
+PageId BTreeIndex::insertToLeafPage(BlobPage *origPage, PageId origPageId,
+                                    const int key, const RecordId &rid,
+                                    int *midVal) {
   LeafNodeInt *origNode = (struct LeafNodeInt *)origPage->getNode();
   int index = findInsertionIndexLeaf(origNode, key);
 
   if (!isLeafNodeFull(origNode)) {
     insertToLeafNode(origNode, index, key, rid);
     origPage->setNode(origNode);
+    bufMgr->unPinPage(file, origPageId, true);
     return 0;
   }
 
@@ -196,6 +200,9 @@ PageId BTreeIndex::insertToLeafPage(BlobPage *origPage, const int key,
   newPage->setNode(newNode);
   *midVal = newNode->keyArray[0];
 
+  bufMgr->unPinPage(file, origPageId, true);
+  bufMgr->unPinPage(file, newPageId, true);
+
   return newPageId;
 }
 
@@ -204,7 +211,7 @@ PageId BTreeIndex::insertHelper(PageId origPageId, const int key,
   BlobPage *origPage = getBlogPageByPid(origPageId);
 
   if (isLeaf(origPage))  // base case
-    return insertToLeafPage(origPage, key, rid, midVal);
+    return insertToLeafPage(origPage, origPageId, key, rid, midVal);
 
   NonLeafNodeInt *origNode = (NonLeafNodeInt *)origPage->getNode();
 
@@ -217,13 +224,17 @@ PageId BTreeIndex::insertHelper(PageId origPageId, const int key,
       insertHelper(origChildPageId, key, rid, &newChildMidVal);
 
   // not split in child
-  if (newChildPageId == 0) return 0;
+  if (newChildPageId == 0) {
+    bufMgr->unPinPage(file, origPageId, false);
+    return 0;
+  }
 
   // split in child, need to add splitted child to currNode
   int index = findIndexNonLeaf(origNode, newChildMidVal);
   if (!isNonLeafNodeFull(origNode)) {  // current node is not full
     insertToNonLeafNode(origNode, index, newChildMidVal, newChildPageId);
     origPage->setNode(origNode);
+    bufMgr->unPinPage(file, origPageId, true);
     return 0;
   }
 
@@ -247,7 +258,8 @@ PageId BTreeIndex::insertHelper(PageId origPageId, const int key,
     insertToNonLeafNode(node, insertIndex, newChildMidVal, newChildPageId);
   }
 
-  origPage->setNode(origNode);        // save node to orig page
+  origPage->setNode(origNode);  // save node to orig page
+  bufMgr->unPinPage(file, origPageId, true);
   return createPageForNode(newNode);  // return new page
 }
 
@@ -257,7 +269,10 @@ void BTreeIndex::initPageId() {
   currentPageData = getBlogPageByPid(currentPageNum);
   if (isLeaf(currentPageData)) return;
 
-  NonLeafNodeInt *node = (NonLeafNodeInt *) ((BlobPage *) currentPageData)->getNode();
+  NonLeafNodeInt *node =
+      (NonLeafNodeInt *)((BlobPage *)currentPageData)->getNode();
+
+  bufMgr->unPinPage(file, currentPageNum, false);
   currentPageNum = node->pageNoArray[findIndexNonLeaf(node, lowValInt)];
   initPageId();
 }
@@ -266,9 +281,7 @@ void BTreeIndex::initEntryIndex() {
   LeafNodeInt *node = (LeafNodeInt *)((BlobPage *)currentPageData)->getNode();
   int entryIndex = findScanIndexLeaf(node, lowValInt, lowOp == GTE);
   if (-1 == entryIndex) {
-    currentPageNum = node->rightSibPageNo;
-    currentPageData = getBlogPageByPid(currentPageNum);
-    nextEntry = 0;
+    setNextEntry();
     return;
   }
   nextEntry = entryIndex;
@@ -279,6 +292,7 @@ void BTreeIndex::setNextEntry() {
   LeafNodeInt *node = (LeafNodeInt *)((BlobPage *)currentPageData)->getNode();
   if (nextEntry >= INTARRAYLEAFSIZE ||
       node->ridArray[nextEntry].page_number == 0) {
+    bufMgr->unPinPage(file, currentPageNum, false);
     currentPageNum = node->rightSibPageNo;
     currentPageData = getBlogPageByPid(currentPageNum);
     nextEntry = 0;

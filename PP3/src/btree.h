@@ -299,11 +299,10 @@ class BTreeIndex {
 
   BlobPage *getBlogPageByPid(PageId page_id);
 
-  PageId insertToLeafPage(BlobPage *page, int key, const RecordId &rid,
-                          int *midVal);
+  PageId insertToLeafPage(BlobPage *page, PageId origPageId, int key,
+                          const RecordId &rid, int *midVal);
 
-  PageId insertHelper(PageId pid, int key, RecordId rid,
-                      int *midVal);
+  PageId insertHelper(PageId pid, int key, RecordId rid, int *midVal);
 
   void printTreeHelper(PageId pid);
 
