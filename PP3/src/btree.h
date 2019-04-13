@@ -299,21 +299,19 @@ class BTreeIndex {
 
   BlobPage *getBlogPageByPid(PageId page_id);
 
-  PageId insertToLeafPage(BlobPage *page, const int key, const RecordId &rid,
+  PageId insertToLeafPage(BlobPage *page, int key, const RecordId &rid,
                           int *midVal);
 
-  PageId insertHelper(PageId pid, const int key, const RecordId rid,
+  PageId insertHelper(PageId pid, int key, RecordId rid,
                       int *midVal);
 
   void printTreeHelper(PageId pid);
 
-  void getLeafPageIdByKey(PageId pid, const int key);
+  void initPageId();
 
-  void getEntryIndexByKey(const int key, bool includeCurrentKey);
+  void initEntryIndex();
 
-  void getNextEntry();
-
-  void initScan();
+  void setNextEntry();
 
  public:
   void printTree();

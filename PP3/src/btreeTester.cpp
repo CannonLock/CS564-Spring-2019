@@ -16,6 +16,50 @@
 //              |             |
 //            [10, 11] -> [12, 13, 15]
 
+
+void printLeaf(LeafNodeInt *node) {
+  cout << "Node level: " << node->level << " | Right Pg #： "
+       << node->rightSibPageNo << endl
+       << "Key Array: | ";
+  for (PageId i = 0; node->ridArray[i].page_number != 0; i++) {
+    cout << node->keyArray[i] << "\t| ";
+  }
+  cout << endl << "Rid Array: | ";
+  for (PageId i = 0; i < node->ridArray[i].page_number; i++) {
+    RecordId *record = &node->ridArray[i];
+    cout << record->page_number << "," << record->slot_number << " | ";
+  }
+  cout << " |" << endl;
+}
+
+void printNonLeaf(NonLeafNodeInt *a) {
+  cout << a->level << endl << " |-" << a->pageNoArray[0] << "-| ";
+  for (int i = 0; i < INTARRAYNONLEAFSIZE; i++)
+    if (a->keyArray[i] != 0)
+      cout << a->keyArray[i] << " |-" << a->pageNoArray[i + 1] << "-| ";
+  cout << endl;
+}
+
+void BTreeIndex::printTree() {
+  printTreeHelper(BTreeIndex::indexMetaInfo.rootPageNo);
+}
+
+void BTreeIndex::printTreeHelper(PageId pid) {
+  BlobPage *page = BTreeIndex::getBlogPageByPid(pid);
+  if (isLeaf(page)) {  // base case
+    LeafNodeInt *node = (LeafNodeInt *) page->getNode();
+    printLeaf(node);
+    return;
+  }
+
+  NonLeafNodeInt *node = (NonLeafNodeInt *) page->getNode();
+  for (int i = 0; node->pageNoArray[i] != 0; i++) {
+    printTreeHelper(node->pageNoArray[i]);
+    if (i < INTARRAYNONLEAFSIZE)
+      cout << "-- " << node->keyArray[i] << " --" << endl;
+  }
+}
+
 int main(int argc, char *argv[]) {
   // cout << getIndexName("adasd", 5) << endl;
   // cout << findInsertionIndex(nullptr, 1) << &"123" << endl << "123" <<

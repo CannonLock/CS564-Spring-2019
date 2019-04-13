@@ -8,52 +8,11 @@
 using namespace std;
 using namespace badgerdb;
 
-bool isLeaf(BlobPage *page) {
-  void *node = page->getNode();
+/** Generic Helper*/
+
+bool isLeaf(Page *page) {
+  void *node = ((BlobPage *) page)->getNode();
   return *((int *)node) == -1;
-}
-
-void printLeaf(LeafNodeInt *node) {
-  cout << "Node level: " << node->level << " | Right Pg #： "
-       << node->rightSibPageNo << endl
-       << "Key Array: | ";
-  for (PageId i = 0; node->ridArray[i].page_number != 0; i++) {
-    cout << node->keyArray[i] << "\t| ";
-  }
-  cout << endl << "Rid Array: | ";
-  for (PageId i = 0; i < node->ridArray[i].page_number; i++) {
-    RecordId *record = &node->ridArray[i];
-    cout << record->page_number << "," << record->slot_number << " | ";
-  }
-  cout << " |" << endl;
-}
-
-void printNonLeaf(NonLeafNodeInt *a) {
-  cout << a->level << endl << " |-" << a->pageNoArray[0] << "-| ";
-  for (int i = 0; i < INTARRAYNONLEAFSIZE; i++)
-    if (a->keyArray[i] != 0)
-      cout << a->keyArray[i] << " |-" << a->pageNoArray[i + 1] << "-| ";
-  cout << endl;
-}
-
-void BTreeIndex::printTree() {
-  printTreeHelper(BTreeIndex::indexMetaInfo.rootPageNo);
-}
-
-void BTreeIndex::printTreeHelper(PageId pid) {
-  BlobPage *page = BTreeIndex::getBlogPageByPid(pid);
-  if (isLeaf(page)) {  // base case
-    LeafNodeInt *node = (LeafNodeInt *)page->getNode();
-    printLeaf(node);
-    return;
-  }
-
-  NonLeafNodeInt *node = (NonLeafNodeInt *)page->getNode();
-  for (int i = 0; node->pageNoArray[i] != 0; i++) {
-    printTreeHelper(node->pageNoArray[i]);
-    if (i < INTARRAYNONLEAFSIZE)
-      cout << "-- " << node->keyArray[i] << " --" << endl;
-  }
 }
 
 const string getIndexName(const string &relationName,
@@ -63,7 +22,7 @@ const string getIndexName(const string &relationName,
   return idxStr.str();
 }
 
-int findIndex(int arr[], int len, int key, bool includeCurrentKey) {
+int findIndex(const int arr[], int len, int key, bool includeCurrentKey) {
   if (includeCurrentKey) {
     for (int i = 0; i < len; i++)
       if (arr[i] >= key) return i;
@@ -294,37 +253,28 @@ PageId BTreeIndex::insertHelper(PageId origPageId, const int key,
 
 /*******************************  Scan  *******************************/
 
-void BTreeIndex::initScan() {
-  getLeafPageIdByKey(indexMetaInfo.rootPageNo, lowValInt);
-  getEntryIndexByKey(lowValInt, lowOp == GTE);
+void BTreeIndex::initPageId() {
+  currentPageData = getBlogPageByPid(currentPageNum);
+  if (isLeaf(currentPageData)) return;
+
+  NonLeafNodeInt *node = (NonLeafNodeInt *) ((BlobPage *) currentPageData)->getNode();
+  currentPageNum = node->pageNoArray[findIndexNonLeaf(node, lowValInt)];
+  initPageId();
 }
 
-void BTreeIndex::getLeafPageIdByKey(PageId pid, const int key) {
-  BlobPage *page = getBlogPageByPid(pid);
-
-  if (isLeaf(page)) {  // base case
-    currentPageData = page;
-    currentPageNum = pid;
-    return;
-  }
-
-  NonLeafNodeInt *node = (NonLeafNodeInt *)page->getNode();
-  PageId childPageId = node->pageNoArray[findIndexNonLeaf(node, key)];
-  getLeafPageIdByKey(childPageId, key);
-}
-
-void BTreeIndex::getEntryIndexByKey(const int key, bool includeCurrentKey) {
+void BTreeIndex::initEntryIndex() {
   LeafNodeInt *node = (LeafNodeInt *)((BlobPage *)currentPageData)->getNode();
-  int entryIndex = findScanIndexLeaf(node, key, includeCurrentKey);
+  int entryIndex = findScanIndexLeaf(node, lowValInt, lowOp == GTE);
   if (-1 == entryIndex) {
     currentPageNum = node->rightSibPageNo;
     currentPageData = getBlogPageByPid(currentPageNum);
     nextEntry = 0;
+    return;
   }
   nextEntry = entryIndex;
 }
 
-void BTreeIndex::getNextEntry() {
+void BTreeIndex::setNextEntry() {
   nextEntry++;
   LeafNodeInt *node = (LeafNodeInt *)((BlobPage *)currentPageData)->getNode();
   if (nextEntry >= INTARRAYLEAFSIZE ||

@@ -92,7 +92,6 @@ BTreeIndex::~BTreeIndex() {
   bufMgr->flushFile(file);
   scanExecuting = false;
   delete file;
-  //  free(file);
 }
 
 /**
@@ -159,7 +158,10 @@ const void BTreeIndex::startScan(const void *lowValParm,
 
   scanExecuting = true;
 
-  initScan();
+  currentPageNum = indexMetaInfo.rootPageNo;
+
+  initPageId();
+  initEntryIndex();
 }
 
 /**
@@ -190,7 +192,7 @@ const void BTreeIndex::scanNext(RecordId &outRid) {
   if (val > highValInt) throw IndexScanCompletedException();
   if (val == highValInt && highOp == LT) throw IndexScanCompletedException();
 
-  getNextEntry();
+  setNextEntry();
 }
 
 /**
