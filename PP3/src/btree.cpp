@@ -37,10 +37,6 @@ bool isLeafNodeFull(LeafNodeInt *node) {
   return node->ridArray[INTARRAYLEAFSIZE - 1] != RecordId{};
 }
 
-void setNode(Page *page, void *node) {
-  memcpy(page, node, Page::SIZE);
-}
-
 int findArrayIndex(const int *arr, int len, int key, bool includeCurrentKey = true) {
   if (includeCurrentKey) {
     for (int i = 0; i < len; i++)
@@ -95,7 +91,7 @@ PageId BTreeIndex::createPageForNode(void *node) {
   PageId pid;
   Page *page;
   bufMgr->allocPage(file, pid, page);
-  setNode(page, node);
+  memcpy(page, node, Page::SIZE);
   bufMgr->unPinPage(file, pid, true);
   return pid;
 }
@@ -119,8 +115,7 @@ void insertToLeafNode(LeafNodeInt *node, int index, int key, RecordId rid) {
   node->ridArray[index].slot_number = rid.slot_number;
 }
 
-LeafNodeInt *splitLeafNode(LeafNodeInt *node, int index) {
-  LeafNodeInt *newNode = new LeafNodeInt();
+void splitLeafNode(LeafNodeInt *node, LeafNodeInt *newNode, int index) {
   size_t rightsize = INTARRAYLEAFSIZE - index;
   void *keyptr = &(node->keyArray[index]);
   void *ridptr = &(node->ridArray[index]);
@@ -128,7 +123,6 @@ LeafNodeInt *splitLeafNode(LeafNodeInt *node, int index) {
   memcpy(&newNode->ridArray, ridptr, rightsize * sizeof(RecordId));
   memset(keyptr, 0, rightsize * sizeof(int));
   memset(ridptr, 0, rightsize * sizeof(RecordId));
-  return newNode;
 }
 
 PageId BTreeIndex::insertToLeafPage(LeafNodeInt *origNode, PageId origPageId,
@@ -143,20 +137,22 @@ PageId BTreeIndex::insertToLeafPage(LeafNodeInt *origNode, PageId origPageId,
 
   int middleIndex = INTARRAYLEAFSIZE / 2;
   bool insertToLeft = index < middleIndex;
-  LeafNodeInt *newNode = splitLeafNode(origNode, middleIndex + insertToLeft);
+
+  PageId newPageId;
+  LeafNodeInt *newNode;
+  bufMgr->allocPage(file, newPageId, (Page *&) newNode);
+  newNode->level = -1;
+  splitLeafNode(origNode, newNode, middleIndex + insertToLeft);
 
   if (insertToLeft)
     insertToLeafNode(origNode, index, key, rid);
   else
     insertToLeafNode(newNode, index - middleIndex, key, rid);
 
-  PageId newPageId = createPageForNode(newNode);
-  Page *newPage = getPageByPid(newPageId);
 
   newNode->rightSibPageNo = origNode->rightSibPageNo;
   origNode->rightSibPageNo = newPageId;
 
-  setNode(newPage, newNode);
   *midVal = newNode->keyArray[0];
 
   bufMgr->unPinPage(file, origPageId, true);
@@ -321,12 +317,9 @@ BTreeIndex::BTreeIndex(const string &relationName, string &outIndexName,
 
   file = new BlobFile(outIndexName, true);
 
-  Page *newPage;
-  bufMgr->allocPage(file, indexMetaInfo.rootPageNo, newPage);
-  Page *root = (Page *) newPage;
-
-  LeafNodeInt node{};
-  setNode(root, &node);
+  LeafNodeInt *root;
+  bufMgr->allocPage(file, indexMetaInfo.rootPageNo, (Page *&) root);
+  root->level = -1;
   bufMgr->unPinPage(file, indexMetaInfo.rootPageNo, true);
 
   FileScan fscan(relationName, bufMgr);
@@ -401,10 +394,9 @@ const void BTreeIndex::insertEntry(const void *key, const RecordId rid) {
  * @param highValParm The high value to be tested.
  * @param highOpParm The operation to be used in testing the high range.
  */
-const void BTreeIndex::startScan(const void *lowValParm,
-                                 const Operator lowOpParm,
-                                 const void *highValParm,
-                                 const Operator highOpParm) {
+const void BTreeIndex::startScan(const void *lowValParm, const Operator lowOpParm,
+                                 const void *highValParm, const Operator highOpParm) {
+
   if (lowOpParm != GT && lowOpParm != GTE) throw BadOpcodesException();
   if (highOpParm != LT && highOpParm != LTE) throw BadOpcodesException();
 
@@ -447,9 +439,8 @@ const void BTreeIndex::scanNext(RecordId &outRid) {
   outRid = node->ridArray[nextEntry];
   int val = node->keyArray[nextEntry];
 
-  if (outRid == RecordId{}) throw IndexScanCompletedException();
-  if (val > highValInt) throw IndexScanCompletedException();
-  if (val == highValInt && highOp == LT) throw IndexScanCompletedException();
+  if (outRid == RecordId{} || val > highValInt || (val == highValInt && highOp == LT))
+    throw IndexScanCompletedException();
   setNextEntry();
 }
 

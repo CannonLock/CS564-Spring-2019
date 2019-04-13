@@ -99,7 +99,7 @@ struct NonLeafNodeInt {
   /**
    * Level of the node in the tree.
    */
-  int level = 1;
+  int level = 0;
 
   /**
    * Stores keys.
