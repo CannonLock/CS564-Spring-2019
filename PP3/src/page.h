@@ -343,11 +343,6 @@ class Page {
   friend class PageIterator;
 };
 
-class BlobPage : public Page {
- public:
-  void setNode(const void *node);
-  void *getNode();
-};
 
 static_assert(Page::SIZE > sizeof(PageHeader),
               "Page size must be large enough to hold header and data.");

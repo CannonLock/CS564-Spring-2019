@@ -4,17 +4,9 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "build test",
-            "type": "shell",
-            "command": "make",
-            "group": {
-                "kind": "build"
-            }
-        },
-        {
             "label": "build main",
             "type": "shell",
-            "command": "make all",
+            "command": "make",
             "group": {
                 "kind": "build",
                 "isDefault": true

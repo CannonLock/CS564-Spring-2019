@@ -58,7 +58,6 @@ typedef struct tuple {
 PageFile *file1;
 RecordId rid;
 RECORD record1;
-std::string dbRecord1;
 
 BufMgr *bufMgr = new BufMgr(100);
 
@@ -84,6 +83,10 @@ void test1();
 void test2();
 
 void test3();
+
+void test4();
+
+void stress_test();
 
 void errorTests();
 
@@ -141,9 +144,10 @@ int main(int argc, char **argv) {
 
   File::remove(relationName);
 
-  test1();
-  test2();
+  //  test1();
+  //  test2();
   test3();
+  //  test4();
   // errorTests();
 
   return 1;
@@ -337,13 +341,13 @@ void intTests() {
                    INTEGER);
 
   // run some tests
-  checkPassFail(intScan(&index, 25, GT, 40, LT), 14)
-      checkPassFail(intScan(&index, 20, GTE, 35, LTE), 16)
-          checkPassFail(intScan(&index, -3, GT, 3, LT), 3)
-              checkPassFail(intScan(&index, 996, GT, 1001, LT), 4)
-                  checkPassFail(intScan(&index, 0, GT, 1, LT), 0) checkPassFail(
-                      intScan(&index, 300, GT, 400, LT), 99)
-                      checkPassFail(intScan(&index, 3000, GTE, 4000, LT), 1000)
+  checkPassFail(intScan(&index, 25, GT, 40, LT), 14);
+  checkPassFail(intScan(&index, 20, GTE, 35, LTE), 16);
+  checkPassFail(intScan(&index, -3, GT, 3, LT), 3);
+  checkPassFail(intScan(&index, 996, GT, 1001, LT), 4);
+  checkPassFail(intScan(&index, 0, GT, 1, LT), 0);
+  checkPassFail(intScan(&index, 300, GT, 400, LT), 99);
+  checkPassFail(intScan(&index, 3000, GTE, 4000, LT), 1000);
 }
 
 int intScan(BTreeIndex *index, int lowVal, Operator lowOp, int highVal,
@@ -507,4 +511,86 @@ void deleteRelation() {
     File::remove(relationName);
   } catch (FileNotFoundException e) {
   }
+}
+
+void test_int_out_of_bound() {
+  std::cout << "Create a B+ Tree index on the integer field" << std::endl;
+  BTreeIndex index(relationName, intIndexName, bufMgr, offsetof(tuple, i),
+                   INTEGER);
+  checkPassFail(intScan(&index, 3000, GTE, 6000, LT), 2000);
+  checkPassFail(intScan(&index, 4999, GTE, 5010, LT), 1);
+  checkPassFail(intScan(&index, 5500, GTE, 6000, LT), 0);
+  checkPassFail(intScan(&index, 4999, GT, 6000, LT), 0);
+  checkPassFail(intScan(&index, -3000, GT, 0, LT), 0);
+  checkPassFail(intScan(&index, -3000, GT, 0, LTE), 1);
+  checkPassFail(intScan(&index, -3000, GT, 5, LTE), 6);
+  checkPassFail(intScan(&index, -3000, GT, 200, LT), 200);
+}
+
+void test4() {
+  std::cout << "---------------------" << std::endl;
+  std::cout << "index out of bound test" << std::endl;
+  createRelationForward();
+  test_int_out_of_bound();
+  deleteRelation();
+}
+
+void createMassiveRandom() {
+  // destroy any old copies of relation file
+  try {
+    File::remove(relationName);
+  } catch (FileNotFoundException e) {
+  }
+  file1 = new PageFile(relationName, true);
+
+  // initialize all of record1.s to keep purify happy
+  memset(record1.s, ' ', sizeof(record1.s));
+  PageId new_page_number;
+  Page new_page = file1->allocatePage(new_page_number);
+
+  // insert records in random order
+
+  std::vector<int> intvec(relationSize);
+  for (int i = 0; i < relationSize; i++) {
+    intvec[i] = i;
+  }
+
+  int relationSize = 400000;
+  long pos;
+  int val;
+  int i = 0;
+  while (i < relationSize) {
+    pos = random() % (relationSize - i);
+    val = intvec[pos];
+    sprintf(record1.s, "%05d string record", val);
+    record1.i = val;
+    record1.d = val;
+
+    std::string new_data(reinterpret_cast<char *>(&record1), sizeof(RECORD));
+
+    while (1) {
+      try {
+        new_page.insertRecord(new_data);
+        break;
+      } catch (InsufficientSpaceException e) {
+        file1->writePage(new_page_number, new_page);
+        new_page = file1->allocatePage(new_page_number);
+      }
+    }
+
+    int temp = intvec[relationSize - 1 - i];
+    intvec[relationSize - 1 - i] = intvec[pos];
+    intvec[pos] = temp;
+    i++;
+  }
+
+  file1->writePage(new_page_number, new_page);
+}
+
+void stress_test() {
+  std::cout << "---------------------" << std::endl;
+  std::cout << "stress test" << std::endl;
+  createMassiveRandom();
+  indexTests();
+  deleteRelation();
 }

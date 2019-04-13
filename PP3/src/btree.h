@@ -52,53 +52,6 @@ const int INTARRAYNONLEAFSIZE = (Page::SIZE - sizeof(int) - sizeof(PageId)) /
                                 (sizeof(int) + sizeof(PageId));
 
 /**
- * @brief Structure to store a key-rid pair. It is used to pass the pair to
- * functions that add to or make changes to the leaf node pages of the tree. Is
- * templated for the key member.
- */
-template <class T>
-class RIDKeyPair {
- public:
-  RecordId rid;
-  T key;
-
-  void set(RecordId r, T k) {
-    rid = r;
-    key = k;
-  }
-};
-
-/**
- * @brief Structure to store a key page pair which is used to pass the key and
- * page to functions that make any modifications to the non leaf pages of the
- * tree.
- */
-template <class T>
-class PageKeyPair {
- public:
-  PageId pageNo;
-  T key;
-
-  void set(int p, T k) {
-    pageNo = p;
-    key = k;
-  }
-};
-
-/**
- * @brief Overloaded operator to compare the key values of two rid-key pairs
- * and if they are the same compares to see if the first pair has
- * a smaller rid.pageNo value.
- */
-template <class T>
-bool operator<(const RIDKeyPair<T> &r1, const RIDKeyPair<T> &r2) {
-  if (r1.key != r2.key)
-    return r1.key < r2.key;
-  else
-    return r1.rid.page_number < r2.rid.page_number;
-}
-
-/**
  * @brief The meta page, which holds metadata for Index file, is always first
  * page of the btree index file and is cast to the following structure to store
  * or retrieve information from it. Contains the relation name for which the
@@ -146,18 +99,18 @@ struct NonLeafNodeInt {
   /**
    * Level of the node in the tree.
    */
-  int level;
+  int level = 1;
 
   /**
    * Stores keys.
    */
-  int keyArray[INTARRAYNONLEAFSIZE];
+  int keyArray[INTARRAYNONLEAFSIZE]{};
 
   /**
    * Stores page numbers of child pages which themselves are other non-leaf/leaf
    * nodes in the tree.
    */
-  PageId pageNoArray[INTARRAYNONLEAFSIZE + 1];
+  PageId pageNoArray[INTARRAYNONLEAFSIZE + 1]{};
 };
 
 /**
@@ -170,19 +123,19 @@ struct LeafNodeInt {
   /**
    * Stores keys.
    */
-  int keyArray[INTARRAYLEAFSIZE];
+  int keyArray[INTARRAYLEAFSIZE]{};
 
   /**
    * Stores RecordIds.
    */
-  RecordId ridArray[INTARRAYLEAFSIZE];
+  RecordId ridArray[INTARRAYLEAFSIZE]{};
 
   /**
    * Page number of the leaf on the right side.
    * This linking of leaves allows to easily move from one leaf to the next leaf
    * during index scan.
    */
-  PageId rightSibPageNo;
+  PageId rightSibPageNo = 0;
 };
 
 /**
@@ -202,16 +155,6 @@ class BTreeIndex {
   BufMgr *bufMgr{};
 
   /**
-   * Page number of meta page.
-   */
-  PageId headerPageNum{};
-
-  /**
-   * page number of root page of B+ tree inside index file.
-   */
-  PageId rootPageNum{};
-
-  /**
    * Datatype of attribute over which index is built.
    */
   Datatype attributeType;
@@ -220,16 +163,6 @@ class BTreeIndex {
    * Offset of attribute, over which index is built, inside records.
    */
   int attrByteOffset{};
-
-  /**
-   * Number of keys in leaf node, depending upon the type of key.
-   */
-  int leafOccupancy{};
-
-  /**
-   * Number of keys in non-leaf node, depending upon the type of key.
-   */
-  int nodeOccupancy{};
 
   // MEMBERS SPECIFIC TO SCANNING
 
@@ -259,29 +192,9 @@ class BTreeIndex {
   int lowValInt{};
 
   /**
-   * Low DOUBLE value for scan.
-   */
-  double lowValDouble{};
-
-  /**
-   * Low STRING value for scan.
-   */
-  std::string lowValString;
-
-  /**
    * High INTEGER value for scan.
    */
   int highValInt{};
-
-  /**
-   * High DOUBLE value for scan.
-   */
-  double highValDouble{};
-
-  /**
-   * High STRING value for scan.
-   */
-  std::string highValString;
 
   /**
    * Low Operator. Can only be GT(>) or GTE(>=).
@@ -297,14 +210,12 @@ class BTreeIndex {
 
   PageId createPageForNode(void *);
 
-  BlobPage *getBlogPageByPid(PageId page_id);
+  Page *getPageByPid(PageId pid);
 
-  PageId insertToLeafPage(BlobPage *page, PageId origPageId, int key,
+  PageId insertToLeafPage(Page *page, PageId origPageId, int key,
                           const RecordId &rid, int *midVal);
 
   PageId insertHelper(PageId pid, int key, RecordId rid, int *midVal);
-
-  void printTreeHelper(PageId pid);
 
   void initPageId();
 
@@ -312,8 +223,9 @@ class BTreeIndex {
 
   void setNextEntry();
 
+  void moveToNextPage(LeafNodeInt *node);
+
  public:
-  void printTree();
   /**
    * BTreeIndex Constructor.
    * Check to see if the corresponding index file exists. If so, open the
