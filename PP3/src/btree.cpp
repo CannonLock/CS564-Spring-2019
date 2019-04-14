@@ -127,7 +127,7 @@ BTreeIndex::BTreeIndex(const string &relationName, string &outIndexName,
  * @return true if the page stores a leaf node
  *         false if the page stores an internal node
  */
-bool isLeaf(Page *page) { return *((int *)page) == -1; }
+bool BTreeIndex::isLeaf(Page *page) { return *((int *)page) == -1; }
 
 /**
  * Checks if an internal node is full
@@ -138,7 +138,7 @@ bool isLeaf(Page *page) { return *((int *)page) == -1; }
  * @return true if an internal node is full
  *         false if an internal node is not full
  */
-bool isNonLeafNodeFull(NonLeafNodeInt *node) {
+bool BTreeIndex::isNonLeafNodeFull(NonLeafNodeInt *node) {
   return node->pageNoArray[INTARRAYNONLEAFSIZE] != 0;
 }
 
@@ -151,7 +151,7 @@ bool isNonLeafNodeFull(NonLeafNodeInt *node) {
  * @return true if a leaf node is full
  *         false if a leaf node is not full
  */
-bool isLeafNodeFull(LeafNodeInt *node) {
+bool BTreeIndex::isLeafNodeFull(LeafNodeInt *node) {
   return !(node->ridArray[INTARRAYLEAFSIZE - 1].page_number == 0 &&
            node->ridArray[INTARRAYLEAFSIZE - 1].slot_number == 0);
 }
@@ -173,7 +173,7 @@ bool isLeafNodeFull(LeafNodeInt *node) {
  * @param node a leaf node
  * @return the number of records stored in the leaf node
  */
-int getLeafLen(LeafNodeInt *node) {
+int BTreeIndex::getLeafLen(LeafNodeInt *node) {
   for (int i = 0; i < INTARRAYLEAFSIZE; i++) {
     if (node->ridArray[i].page_number == 0 &&
         node->ridArray[i].slot_number == 0)
@@ -191,7 +191,7 @@ int getLeafLen(LeafNodeInt *node) {
  * @param node an internal node
  * @return the number of records stored in the internal node
  */
-int getNonLeafLen(NonLeafNodeInt *node) {
+int BTreeIndex::getNonLeafLen(NonLeafNodeInt *node) {
   for (int i = 1; i <= INTARRAYNONLEAFSIZE; i++)
     if (node->pageNoArray[i] == 0) return i;
 
@@ -215,7 +215,7 @@ int getNonLeafLen(NonLeafNodeInt *node) {
  *            given key if includeKey = true
  *         c. -1 if the key is not found till the end of array
  */
-int findArrayIndex(const int *arr, int len, int key, bool includeKey = true) {
+int BTreeIndex::findArrayIndex(const int *arr, int len, int key, bool includeKey) {
   if (includeKey) {
     for (int i = 0; i < len; i++) {
       if (arr[i] >= key) return i;
@@ -240,7 +240,7 @@ int findArrayIndex(const int *arr, int len, int key, bool includeKey = true) {
  * @return the index of the first key smaller than the given key
  *         return the largest index if not found
  */
-int findIndexNonLeaf(NonLeafNodeInt *node, int key) {
+int BTreeIndex::findIndexNonLeaf(NonLeafNodeInt *node, int key) {
   int len = getNonLeafLen(node);
   int result = findArrayIndex(node->keyArray, len - 1, key);
   return result == -1 ? len - 1 : result;
@@ -258,7 +258,7 @@ int findIndexNonLeaf(NonLeafNodeInt *node, int key) {
  *
  * @return the insertaion index for a key in a leaf node
  */
-int findInsertionIndexLeaf(LeafNodeInt *node, int key) {
+int BTreeIndex::findInsertionIndexLeaf(LeafNodeInt *node, int key) {
   int len = getLeafLen(node);
   int result = findArrayIndex(node->keyArray, len, key);
   return result == -1 ? len : result;
@@ -281,7 +281,7 @@ int findInsertionIndexLeaf(LeafNodeInt *node, int key) {
  *            given key if includeKey = true
  *         c. -1 if the key is not found till the end of array
  */
-int findScanIndexLeaf(LeafNodeInt *node, int key, bool includeKey) {
+int BTreeIndex::findScanIndexLeaf(LeafNodeInt *node, int key, bool includeKey) {
   return findArrayIndex(node->keyArray, getLeafLen(node), key, includeKey);
 }
 
@@ -302,7 +302,7 @@ int findScanIndexLeaf(LeafNodeInt *node, int key, bool includeKey) {
  * @param key the key of the key-record pair to be inserted
  * @param rid the record ID of the key-record pair to be inserted
  */
-void insertToLeafNode(LeafNodeInt *node, int i, int key, RecordId rid) {
+void BTreeIndex::insertToLeafNode(LeafNodeInt *node, int i, int key, RecordId rid) {
   const size_t len = INTARRAYLEAFSIZE - i - 1;
 
   // shift items to add space for the new element
@@ -323,7 +323,7 @@ void insertToLeafNode(LeafNodeInt *node, int i, int key, RecordId rid) {
  * @param key the key of the key-(page number) pair
  * @param pid the page number of the key-(page number) pair
  */
-void insertToNonLeafNode(NonLeafNodeInt *n, int i, int key, PageId pid) {
+void BTreeIndex::insertToNonLeafNode(NonLeafNodeInt *n, int i, int key, PageId pid) {
   const size_t len = INTARRAYLEAFSIZE - i - 1;
 
   // shift items to add space for the new element
@@ -351,7 +351,7 @@ void insertToNonLeafNode(NonLeafNodeInt *n, int i, int key, PageId pid) {
  * @param newNode a pointer to the new node
  * @param index the index where the split occurs.
  */
-void splitLeafNode(LeafNodeInt *node, LeafNodeInt *newNode, int index) {
+void BTreeIndex::splitLeafNode(LeafNodeInt *node, LeafNodeInt *newNode, int index) {
   const size_t len = INTARRAYLEAFSIZE - index;
 
   // copy elements from old node to new node
@@ -376,7 +376,7 @@ void splitLeafNode(LeafNodeInt *node, LeafNodeInt *newNode, int index) {
  *
  * @return a pointer to the newly created internal node.
  */
-void splitNonLeafNode(NonLeafNodeInt *curr, NonLeafNodeInt *next, int i,
+void BTreeIndex::splitNonLeafNode(NonLeafNodeInt *curr, NonLeafNodeInt *next, int i,
                       bool keepMidKey) {
   size_t len = INTARRAYNONLEAFSIZE - i;
 

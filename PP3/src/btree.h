@@ -208,24 +208,268 @@ class BTreeIndex {
 
   struct IndexMetaInfo indexMetaInfo {};
 
+  /**
+   * Alloc a page in the buffer for a leaf node
+   *
+   * @param newPageId the page number for the new node
+   * @return a pointer to the new leaf node
+   */
+  LeafNodeInt *allocLeafNode(PageId &newPageId);
+
+  /**
+   * Alloca a page in the buffer for an internal node
+   *
+   * @param newPageId the page number for the new node
+   * @return a pointer to the new internal node
+   */
+  NonLeafNodeInt *allocNonLeafNode(PageId &newPageId);
+
+  /**
+   * This method takes in a page and checks if the page stores a leaf node or
+   * an internal node.
+   *
+   * Assumption: The level for leaf node is -1.
+   *
+   * @param page the page being checked
+   * @return true if the page stores a leaf node
+   *         false if the page stores an internal node
+   */
+  bool isLeaf(Page *page);
+
+  /**
+   * Checks if an internal node is full
+   *
+   * Assumption: All valid page numbers are nonzero.
+   *
+   * @param node an internal node
+   * @return true if an internal node is full
+   *         false if an internal node is not full
+   */
+  bool isNonLeafNodeFull(NonLeafNodeInt *node);
+
+  /**
+   * Checks if a leaf node is full
+   *
+   * Assumption: All valid records are nonzero.
+   *
+   * @param node a leaf node
+   * @return true if a leaf node is full
+   *         false if a leaf node is not full
+   */
+  bool isLeafNodeFull(LeafNodeInt *node);
+
+  /**
+   * Returns the number of records stored in the leaf node.
+   *
+   * Assumption:
+   *             1. All records are continuously stored.
+   *             2. All valid records are nonzero.
+   *
+   * @param node a leaf node
+   * @return the number of records stored in the leaf node
+   */
+  int getLeafLen(LeafNodeInt *node);
+
+  /**
+   * Returns the number of records stored in the internal node.
+   *
+   * Assumption:
+   *             1. All records are continuously stored.
+   *             2. All valid page numbers are nonzero.
+   *
+   * @param node an internal node
+   * @return the number of records stored in the internal node
+   */
+  int getNonLeafLen(NonLeafNodeInt *node);
+
+  /**
+   * Given an integer array, find the index of the first integer larger than
+   * (or equal to) the given key.
+   *
+   * Assumption: The array is sorted.
+   *
+   * @param arr an interger array
+   * @param len the length of the array
+   * @param key the target key
+   * @param includeKey whether the current key is included
+   *
+   * @return a. the index of the first integer larger than the given key if
+   *            includeKey = false
+   *         b. the index of the first integer larger than or equal to the
+   *            given key if includeKey = true
+   *         c. -1 if the key is not found till the end of array
+   */
+  int findArrayIndex(const int *arr, int len, int key, bool includeKey = true);
+
+  /**
+   * Find the index of the first key smaller than the given key
+   *
+   * Assumption:
+   *             1. All records are continuously stored.
+   *             2. All valid page numbers are nonzero.
+   *             3. All keys are sorted in the node.
+   *
+   * @param node an internal node
+   * @param key the key to find
+   * @return the index of the first key smaller than the given key
+   *         return the largest index if not found
+   */
+  int findIndexNonLeaf(NonLeafNodeInt *node, int key);
+
+  /**
+   * Find the insertaion index for a key in a leaf node
+   *
+   * Assumption:
+   *             1. All records are continuously stored.
+   *             2. All valid records are nonzero.
+   *             3. All keys are sorted in the node.
+   *
+   * @param node a leaf node
+   * @param key the key to be inserted
+   *
+   * @return the insertaion index for a key in a leaf node
+   */
+  int findInsertionIndexLeaf(LeafNodeInt *node, int key);
+
+  /**
+   * Find the index of the first key larger than the given key in the leaf node
+   *
+   * Assumption:
+   *             1. All records are continuously stored.
+   *             2. All valid records are nonzero.
+   *             3. All keys are sorted in the node.
+   *
+   * @param node a leaf node
+   * @param key the key to find
+   * @param includeKey whether the current key is included
+   *
+   * @return a. the index of the first integer larger than the given key if
+   *            includeKey = false
+   *         b. the index of the first integer larger than or equal to the
+   *            given key if includeKey = true
+   *         c. -1 if the key is not found till the end of array
+   */
+  int findScanIndexLeaf(LeafNodeInt *node, int key, bool includeKey);
+
+  /**
+   * Inserts the given key-record pair into the leaf node at the given insertion
+   * index.
+   *
+   * @param node a leaf node
+   * @param i the insertion index
+   * @param key the key of the key-record pair to be inserted
+   * @param rid the record ID of the key-record pair to be inserted
+   */
+  void insertToLeafNode(LeafNodeInt *node, int i, int key, RecordId rid);
+
+  /**
+   * Inserts the given key-(page number) pair into the given leaf node at the
+   * given index.
+   *
+   * @param n an internal node
+   * @param i the insertion index
+   * @param key the key of the key-(page number) pair
+   * @param pid the page number of the key-(page number) pair
+   */
+  void insertToNonLeafNode(NonLeafNodeInt *n, int i, int key, PageId pid);
+
+  /**
+   * Splits a leaf node into two.
+   * It moves the records after the given index in the node into the new node.
+   *
+   * @param node a pointer to the original node
+   * @param newNode a pointer to the new node
+   * @param index the index where the split occurs.
+   */
+  void splitLeafNode(LeafNodeInt *node, LeafNodeInt *newNode, int index);
+
+  /**
+   * Split the internal node by the given index. It moves the values stored in
+   * the given node after the split index into a new internal node.
+   *
+   * @param node an internal node
+   * @param i the index where the split occurs.
+   * @param keepMidKey Whether the value at the index should be moved to the
+   * parent internal node or not. If keepMidKey is true, then the pair at the
+   * index does not need to be moved up and will be moved to the newly created
+   *                   internal node.
+   *
+   * @return a pointer to the newly created internal node.
+   */
+  void splitNonLeafNode(NonLeafNodeInt *curr, NonLeafNodeInt *next, int i,
+                        bool keepMidKey);
+
+  /**
+   * Create a new root with midVal, pid1 and pid2.
+   *
+   * @param midVal the first middle value of the new root
+   * @param pid1 the first page number in the new root
+   * @param pid2 the second page number in the new root
+   *
+   * @return the page id of the new root
+   */
+  PageId splitRoot(int midVal, PageId pid1, PageId pid2);
+
+  /**
+   * Insert the given key-(record id) pair into the given leaf node.
+   *
+   * @param origNode a leaf node
+   * @param origPageId the page id of the page that stores the leaf node
+   * @param key the key of the key-record pair
+   * @param rid the record id of the key-record pair
+   * @param midVal a reference to an integer in the parent node. If the
+   * insertion requires a split in the leaf node, midVal is set to the smallest
+   * element of the newly created node.
+   *
+   * @return The page number of the newly created page if insertion requires a
+   *         split, or 0 if no new node is created.
+   */
   PageId insertToLeafPage(Page *origPage, PageId origPageId, int key,
                           RecordId rid, int &midVal);
 
-  PageId insert(PageId pid, int key, RecordId rid, int &midVal);
+  /**
+   * Recursively insert the given key-record pair into the subtree with the
+   * given root node. If the root node requires a split, the page number of the
+   * newly created node will be return
+   *
+   * @param origPageId page id of the page that stores the root node of the
+   *        subtree.
+   * @param key the key of the key-record pair to be inserted
+   * @param rid the record ID of the key-record pair to be inserted
+   * @param midVal a pointer to an integer value to be stored in the parent
+   * node. If the insertion requires a split in the current level, midVal is set
+   *        to the smallest key stored in the subtree pointed by the newly
+   * created node.
+   *
+   * @return the page number of the newly created node if a split occurs, or 0
+   *         otherwise.
+   */
+  PageId insert(PageId origPageId, int key, RecordId rid, int &midVal);
 
-  LeafNodeInt *allocLeafNode(PageId &pid);
+  /**
+   * Change the currently scanning page to the next page pointed to by the
+   * current page.
+   * @param node the node stored in the currently scanning page.
+   */
+  void moveToNextPage(LeafNodeInt *node);
 
-  NonLeafNodeInt *allocNonLeafNode(PageId &pid);
-
-  PageId splitRoot(int midVal, PageId pid1, PageId pid2);
-
+  /**
+   * Recursively find the page id of the first element larger than or equal to
+   * the lower bound given.
+   */
   void setPageIdForScan();
 
+  /**
+   * Find the first element in the currently scanning page that is within the
+   * given bound.
+   */
   void setEntryIndexForScan();
 
+  /**
+   * Continue scanning the next entry. If the currently scanning entry is the
+   * last element in this page, set the current scanning page to the next page.
+   */
   void setNextEntry();
-
-  void moveToNextPage(LeafNodeInt *node);
 
  public:
   /**
@@ -319,5 +563,4 @@ class BTreeIndex {
    **/
   const void endScan();
 };
-
 }  // namespace badgerdb
