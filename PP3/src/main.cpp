@@ -86,18 +86,14 @@ int intScan(BTreeIndex *index, int lowVal, Operator lowOp, int highVal,
 void indexTests();
 
 void test1_contiguous_ascending();
-
 void test2_contiguous_descending();
-
 void test3_contiguous_random();
-
 void test4_out_of_bound();
-
 void test5_noncontiguous_random();
-
-void test6_stress_test();
-
-void test7_error_test();
+void test6_contiguous_ascending_stress();
+void test7_contiguous_descending_stress();
+void test8_contiguous_random_stress();
+void test9_error_test();
 
 void randomIntTests(std::vector<int> *sortedvec);
 
@@ -172,8 +168,10 @@ int main(int argc, char **argv) {
   test3_contiguous_random();
   test4_out_of_bound();
   test5_noncontiguous_random();
-  test6_stress_test();
-  test7_error_test();
+  test6_contiguous_ascending_stress();
+  test7_contiguous_descending_stress();
+  test8_contiguous_random_stress();
+  test9_error_test();
 
   return 1;
 }
@@ -190,7 +188,7 @@ void test1_contiguous_ascending() {
   // Create a relation with tuples valued 0 to relationSize and perform index
   // tests on attributes of all three types (int, double, string)
   std::cout << "---------------------" << std::endl;
-  std::cout << "createRelationForward" << std::endl;
+  std::cout << "test1_contiguous_ascending" << std::endl;
   createRelationForward();
   intTests();
   deleteIndexFile();
@@ -201,7 +199,7 @@ void test2_contiguous_descending() {
   // Create a relation with tuples valued 0 to relationSize in reverse order and
   // perform index tests on attributes of all three types (int, double, string)
   std::cout << "----------------------" << std::endl;
-  std::cout << "createRelationBackward" << std::endl;
+  std::cout << "test2_contiguous_descending" << std::endl;
   createRelationBackward();
   intTests();
   deleteIndexFile();
@@ -212,7 +210,7 @@ void test3_contiguous_random() {
   // Create a relation with tuples valued 0 to relationSize in random order and
   // perform index tests on attributes of all three types (int, double, string)
   std::cout << "--------------------" << std::endl;
-  std::cout << "createRelationRandom" << std::endl;
+  std::cout << "test3_contiguous_random" << std::endl;
   createRelationRandom();
   intTests();
   deleteIndexFile();
@@ -221,8 +219,8 @@ void test3_contiguous_random() {
 
 void test4_out_of_bound() {
   std::cout << "---------------------" << std::endl;
-  std::cout << "index out of bound test" << std::endl;
-  createRelationForward();
+  std::cout << "test4_out_of_bound" << std::endl;
+  createRelationRandom();
   test_int_out_of_bound();
   deleteIndexFile();
   deleteRelation();
@@ -230,18 +228,35 @@ void test4_out_of_bound() {
 
 void test5_noncontiguous_random() {
   std::cout << "---------------------" << std::endl;
-  std::cout << "random test" << std::endl;
-  std::vector<int> *sortedvec = createTrueRandom(-5000, 5000, 10);
+  std::cout << "test5_noncontiguous_random" << std::endl;
+  std::vector<int> *sortedvec = createTrueRandom(-relationSize, relationSize, 10);
   randomIntTests(sortedvec);
   free(sortedvec);
   deleteIndexFile();
   deleteRelation();
 }
 
-void test6_stress_test() {
+void test6_contiguous_ascending_stress() {
   std::cout << "---------------------" << std::endl;
-  std::cout << "stress test" << std::endl;
-  createRelationForward(300000);
+  std::cout << "test6_contiguous_ascending_stress" << std::endl;
+  createRelationForward(100000);
+  intTests();
+  deleteIndexFile();
+  deleteRelation();
+}
+
+void test7_contiguous_descending_stress() {
+  std::cout << "---------------------" << std::endl;
+  std::cout << "test7_contiguous_descending_stress" << std::endl;
+  createRelationBackward(100000);
+  intTests();
+  deleteIndexFile();
+  deleteRelation();
+}
+void test8_contiguous_random_stress() {
+  std::cout << "---------------------" << std::endl;
+  std::cout << "test8_contiguous_random_stress" << std::endl;
+  createRelationRandom(100000);
   intTests();
   deleteIndexFile();
   deleteRelation();
@@ -492,7 +507,7 @@ std::vector<int> *createTrueRandom(int from, int to, int rate) {
 // ##################################################################### //
 // ##################################################################### //
 
-void test7_error_test() {
+void test9_error_test() {
   std::cout << "Error handling tests" << std::endl;
   std::cout << "--------------------" << std::endl;
   // Given error test
