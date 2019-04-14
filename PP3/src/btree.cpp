@@ -714,8 +714,10 @@ const void BTreeIndex::scanNext(RecordId &outRid) {
 
   if (outRid == RecordId{} ||               // current record ID is empty
       val > highValInt ||                   // value is out of range
-      (val == highValInt && highOp == LT))  // value reaches the higher end
-    throw IndexScanCompletedException();
+      (val == highValInt && highOp == LT)) {  // value reaches the higher end
+    endScan();
+	throw IndexScanCompletedException();
+  }
   setNextEntry();
 }
 
