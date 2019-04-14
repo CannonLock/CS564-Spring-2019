@@ -212,12 +212,14 @@ class BTreeIndex {
 
   Page *getPageByPid(PageId pid);
 
-  PageId insertToLeafPage(LeafNodeInt *origNode, PageId origPageId, int key,
-                          const RecordId &rid, int &midVal);
+  PageId insertToLeafPage(Page *origPage, PageId origPageId, int key,
+                          RecordId rid, int &midVal);
 
   PageId insertHelper(PageId pid, int key, RecordId rid, int &midVal);
 
   LeafNodeInt *allocLeafNode(PageId &pid);
+  NonLeafNodeInt *allocNonLeafNode(PageId &pid);
+  PageId splitRoot(int midVal, PageId pid1, PageId pid2);
 
   void initPageId();
 
