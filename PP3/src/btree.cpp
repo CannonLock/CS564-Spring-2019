@@ -24,6 +24,39 @@ namespace badgerdb {
 // ##################################################################### //
 // ##################################################################### //
 // ##################################################################### //
+// #########################   Alloc Helper   ########################## //
+// ##################################################################### //
+// ##################################################################### //
+// ##################################################################### //
+
+/**
+ * Alloc a page in the buffer for a leaf node
+ *
+ * @param newPageId the page number for the new node
+ * @return a pointer to the new leaf node
+ */
+LeafNodeInt *BTreeIndex::allocLeafNode(PageId &newPageId) {
+  LeafNodeInt *newNode;
+  bufMgr->allocPage(file, newPageId, (Page *&)newNode);
+  newNode->level = -1;
+  return newNode;
+}
+
+/**
+ * Alloca a page in the buffer for an internal node
+ *
+ * @param newPageId the page number for the new node
+ * @return a pointer to the new internal node
+ */
+NonLeafNodeInt *BTreeIndex::allocNonLeafNode(PageId &newPageId) {
+  NonLeafNodeInt *newNode;
+  bufMgr->allocPage(file, newPageId, (Page *&)newNode);
+  return newNode;
+}
+
+// ##################################################################### //
+// ##################################################################### //
+// ##################################################################### //
 // #########################   Constructor   ########################### //
 // ##################################################################### //
 // ##################################################################### //
@@ -61,9 +94,7 @@ BTreeIndex::BTreeIndex(const string &relationName, string &outIndexName,
 
   file = new BlobFile(outIndexName, true);
 
-  LeafNodeInt *root;
-  bufMgr->allocPage(file, indexMetaInfo.rootPageNo, (Page *&)root);
-  root->level = -1;
+  LeafNodeInt *root = allocLeafNode(indexMetaInfo.rootPageNo);
   bufMgr->unPinPage(file, indexMetaInfo.rootPageNo, true);
 
   FileScan fscan(relationName, bufMgr);
@@ -81,7 +112,7 @@ BTreeIndex::BTreeIndex(const string &relationName, string &outIndexName,
 // ##################################################################### //
 // ##################################################################### //
 // ##################################################################### //
-// #########################  Generic Helper  ########################## //
+// #######################  Generic Node Helper  ####################### //
 // ##################################################################### //
 // ##################################################################### //
 // ##################################################################### //
@@ -123,6 +154,14 @@ bool isNonLeafNodeFull(NonLeafNodeInt *node) {
 bool isLeafNodeFull(LeafNodeInt *node) {
   return node->ridArray[INTARRAYLEAFSIZE - 1] != RecordId{};
 }
+
+// ##################################################################### //
+// ##################################################################### //
+// ##################################################################### //
+// #######################   Find Index Helper   ####################### //
+// ##################################################################### //
+// ##################################################################### //
+// ##################################################################### //
 
 /**
  * Returns the number of records stored in the leaf node.
@@ -175,11 +214,13 @@ int getNonLeafLen(NonLeafNodeInt *node) {
  */
 int findArrayIndex(const int *arr, int len, int key, bool includeKey = true) {
   if (includeKey) {
-    for (int i = 0; i < len; i++)
+    for (int i = 0; i < len; i++) {
       if (arr[i] >= key) return i;
+    }
   } else {
-    for (int i = 0; i < len; i++)
+    for (int i = 0; i < len; i++) {
       if (arr[i] > key) return i;
+    }
   }
   return -1;
 }
@@ -244,7 +285,7 @@ int findScanIndexLeaf(LeafNodeInt *node, int key, bool includeKey) {
 // ##################################################################### //
 // ##################################################################### //
 // ##################################################################### //
-// #########################   Leaf Insert   ########################### //
+// #########################   Insert Helper   ######################### //
 // ##################################################################### //
 // ##################################################################### //
 // ##################################################################### //
@@ -271,6 +312,35 @@ void insertToLeafNode(LeafNodeInt *node, int i, int key, RecordId rid) {
 }
 
 /**
+ * Inserts the given key-(page number) pair into the given leaf node at the
+ * given index.
+ *
+ * @param n an internal node
+ * @param i the insertion index
+ * @param key the key of the key-(page number) pair
+ * @param pid the page number of the key-(page number) pair
+ */
+void insertToNonLeafNode(NonLeafNodeInt *n, int i, int key, PageId pid) {
+  const size_t len = INTARRAYLEAFSIZE - i - 1;
+
+  // shift items to add space for the new element
+  memmove(&n->keyArray[i + 1], &n->keyArray[i], len * sizeof(int));
+  memmove(&n->pageNoArray[i + 2], &n->pageNoArray[i + 1], len * sizeof(PageId));
+
+  // store the key and page number to the node
+  n->keyArray[i] = key;
+  n->pageNoArray[i + 1] = pid;
+}
+
+// ##################################################################### //
+// ##################################################################### //
+// ##################################################################### //
+// ##########################   Split Helper   ######################### //
+// ##################################################################### //
+// ##################################################################### //
+// ##################################################################### //
+
+/**
  * Splits a leaf node into two.
  * It moves the records after the given index in the node into the new node.
  *
@@ -291,17 +361,68 @@ void splitLeafNode(LeafNodeInt *node, LeafNodeInt *newNode, int index) {
 }
 
 /**
- * Alloca a page in the buffer for a leaf node
+ * Split the internal node by the given index. It moves the values stored in the
+ * given node after the split index into a new internal node.
  *
- * @param newPageId the page number for the new node
- * @return a pointer to the new leaf node
+ * @param node an internal node
+ * @param i the index where the split occurs.
+ * @param keepMidKey Whether the value at the index should be moved to the
+ * parent internal node or not. If keepMidKey is true, then the pair at the
+ * index does not need to be moved up and will be moved to the newly created
+ *                   internal node.
+ *
+ * @return a pointer to the newly created internal node.
  */
-LeafNodeInt *BTreeIndex::allocLeafNode(PageId &newPageId) {
-  LeafNodeInt *newNode;
-  bufMgr->allocPage(file, newPageId, (Page *&)newNode);
-  newNode->level = -1;
-  return newNode;
+void splitNonLeafNode(NonLeafNodeInt *curr, NonLeafNodeInt *next, int i,
+                      bool keepMidKey) {
+  size_t len = INTARRAYNONLEAFSIZE - i;
+
+  // copy keys from old node to new node
+  if (keepMidKey)
+    memcpy(&next->keyArray, &curr->keyArray[i], len * sizeof(int));
+  else
+    memcpy(&next->keyArray, &curr->keyArray[i + 1], (len - 1) * sizeof(int));
+
+  // copy values from old node to new node
+  memcpy(&next->pageNoArray, &curr->pageNoArray[i + 1], len * sizeof(PageId));
+
+  // remove elements from old node
+  memset(&curr->keyArray[i], 0, len * sizeof(int));
+  memset(&curr->pageNoArray[i + 1], 0, len * sizeof(PageId));
 }
+
+/**
+ * Create a new root with midVal, pid1 and pid2.
+ *
+ * @param midVal the first middle value of the new root
+ * @param pid1 the first page number in the new root
+ * @param pid2 the second page number in the new root
+ *
+ * @return the page id of the new root
+ */
+PageId BTreeIndex::splitRoot(int midVal, PageId pid1, PageId pid2) {
+  // alloc a new page for root
+  PageId newRootPageId;
+  NonLeafNodeInt *newRoot = allocNonLeafNode(newRootPageId);
+
+  // set key and page numbers
+  newRoot->keyArray[0] = midVal;
+  newRoot->pageNoArray[0] = pid1;
+  newRoot->pageNoArray[1] = pid2;
+
+  // unpin the root page
+  bufMgr->unPinPage(file, newRootPageId, true);
+
+  return newRootPageId;
+}
+
+// ##################################################################### //
+// ##################################################################### //
+// ##################################################################### //
+// #########################       Insert      ######################### //
+// ##################################################################### //
+// ##################################################################### //
+// ##################################################################### //
 
 /**
  * Insert the given key-(record id) pair into the given leaf node.
@@ -365,78 +486,6 @@ PageId BTreeIndex::insertToLeafPage(Page *origPage, PageId origPageId, int key,
   return newPageId;
 }
 
-// ##################################################################### //
-// ##################################################################### //
-// ##################################################################### //
-// #######################   NonLeaf Insert   ########################## //
-// ##################################################################### //
-// ##################################################################### //
-// ##################################################################### //
-
-/**
- * Inserts the given key-(page number) pair into the given leaf node at the
- * given index.
- *
- * @param node an internal node
- * @param i the insertion index
- * @param key the key of the key-(page number) pair
- * @param pid the page number of the key-(page number) pair
- */
-void insertToNonLeafNode(NonLeafNodeInt *node, int i, int key, PageId pid) {
-  const size_t len = INTARRAYLEAFSIZE - i - 1;
-
-  // shift items to add space for the new element
-  memmove(&node->keyArray[i + 1], &node->keyArray[i], len * sizeof(int));
-  memmove(&node->pageNoArray[i + 2], &node->pageNoArray[i + 1],
-          len * sizeof(PageId));
-
-  // store the key and page number to the node
-  node->keyArray[i] = key;
-  node->pageNoArray[i + 1] = pid;
-}
-
-/**
- * Alloca a page in the buffer for an internal node
- *
- * @param newPageId the page number for the new node
- * @return a pointer to the new internal node
- */
-NonLeafNodeInt *BTreeIndex::allocNonLeafNode(PageId &newPageId) {
-  NonLeafNodeInt *newNode;
-  bufMgr->allocPage(file, newPageId, (Page *&)newNode);
-  return newNode;
-}
-
-/**
- * Split the internal node by the given index. It moves the values stored in the
- * given node after the split index into a new internal node.
- *
- * @param node an internal node
- * @param i the index where the split occurs.
- * @param keepMidKey Whether the value at the index should be moved to the
- * parent internal node or not. If keepMidKey is true, then the pair at the
- * index does not need to be moved up and will be moved to the newly created
- *                   internal node.
- *
- * @return a pointer to the newly created internal node.
- */
-void splitNonLeafNode(NonLeafNodeInt *node, NonLeafNodeInt *newNode, int i,
-                      bool keepMidKey) {
-  size_t len = INTARRAYNONLEAFSIZE - i;
-
-  // copy elements from old node to new node
-  if (keepMidKey)
-    memcpy(&newNode->keyArray, &node->keyArray[i], len * sizeof(int));
-  else
-    memcpy(&newNode->keyArray, &node->keyArray[i + 1], (len - 1) * sizeof(int));
-  memcpy(&newNode->pageNoArray, &node->pageNoArray[i + 1],
-         len * sizeof(PageId));
-
-  // remove elements from old node
-  memset(&node->keyArray[i], 0, len * sizeof(int));
-  memset(&node->pageNoArray[i + 1], 0, len * sizeof(PageId));
-}
-
 /**
  * Recursively insert the given key-record pair into the subtree with the given
  * root node. If the root node requires a split, the page number of the newly
@@ -454,8 +503,8 @@ void splitNonLeafNode(NonLeafNodeInt *node, NonLeafNodeInt *newNode, int i,
  * @return the page number of the newly created node if a split occurs, or 0
  *         otherwise.
  */
-PageId BTreeIndex::insertHelper(PageId origPageId, int key, RecordId rid,
-                                int &midVal) {
+PageId BTreeIndex::insert(PageId origPageId, int key, RecordId rid,
+                          int &midVal) {
   Page *origPage;
   bufMgr->readPage(file, origPageId, origPage);
 
@@ -470,8 +519,7 @@ PageId BTreeIndex::insertHelper(PageId origPageId, int key, RecordId rid,
 
   // insert key, rid to child and check whether child is splitted
   int newChildMidVal;
-  PageId newChildPageId =
-      insertHelper(origChildPageId, key, rid, newChildMidVal);
+  PageId newChildPageId = insert(origChildPageId, key, rid, newChildMidVal);
 
   // not split in child
   if (newChildPageId == 0) {
@@ -524,27 +572,6 @@ PageId BTreeIndex::insertHelper(PageId origPageId, int key, RecordId rid,
 }
 
 /**
- * Create a new root with midVal, pid1 and pid2.
- *
- * @param midVal the first middle value of the new root
- * @param pid1 the first page number in the new root
- * @param pid2 the second page number in the new root
- *
- * @return the page id of the new root
- */
-PageId BTreeIndex::splitRoot(int midVal, PageId pid1, PageId pid2) {
-  PageId newRootPageId;
-
-  NonLeafNodeInt *newRoot = allocNonLeafNode(newRootPageId);
-  newRoot->keyArray[0] = midVal;
-  newRoot->pageNoArray[0] = pid1;
-  newRoot->pageNoArray[1] = pid2;
-  bufMgr->unPinPage(file, newRootPageId, true);
-
-  return newRootPageId;
-}
-
-/**
  * Insert a new entry using the pair <value,rid>.
  * Start from root to recursively find out the leaf to insert the entry in.
  * The insertion may cause splitting of leaf node. This splitting will require
@@ -559,7 +586,7 @@ PageId BTreeIndex::splitRoot(int midVal, PageId pid1, PageId pid2) {
  **/
 const void BTreeIndex::insertEntry(const void *key, const RecordId rid) {
   int midval;
-  PageId pid = insertHelper(indexMetaInfo.rootPageNo, *(int *)key, rid, midval);
+  PageId pid = insert(indexMetaInfo.rootPageNo, *(int *)key, rid, midval);
 
   if (pid != 0)
     indexMetaInfo.rootPageNo = splitRoot(midval, indexMetaInfo.rootPageNo, pid);
@@ -685,8 +712,9 @@ const void BTreeIndex::scanNext(RecordId &outRid) {
   outRid = node->ridArray[nextEntry];
   int val = node->keyArray[nextEntry];
 
-  if (outRid == RecordId{} || val > highValInt ||
-      (val == highValInt && highOp == LT))
+  if (outRid == RecordId{} ||               // current record ID is empty
+      val > highValInt ||                   // value is out of range
+      (val == highValInt && highOp == LT))  // value reaches the higher end
     throw IndexScanCompletedException();
   setNextEntry();
 }
