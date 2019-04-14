@@ -40,7 +40,6 @@ using namespace badgerdb;
 // -----------------------------------------------------------------------------
 // Globals
 // -----------------------------------------------------------------------------
-int testNum = 1;
 const std::string relationName = "relA";
 // If the relation size is changed then the second parameter 2 chechPassFail may
 // need to be changed to number of record that are expected to be found during
@@ -70,13 +69,12 @@ BufMgr *bufMgr = new BufMgr(100);
 // ##################################################################### //
 // ##################################################################### //
 
-void createRelationForward();
+void createRelationForward(int rel = relationSize);
 
-void createRelationBackward();
+void createRelationBackward(int rel = relationSize);
 
-void createRelationRandom();
+void createRelationRandom(int rel = relationSize);
 
-void createMassiveRandom();
 
 std::vector<int> *createTrueRandom(int from, int to, int rate);
 
@@ -243,7 +241,7 @@ void test5_noncontiguous_random() {
 void test6_stress_test() {
   std::cout << "---------------------" << std::endl;
   std::cout << "stress test" << std::endl;
-  createMassiveRandom();
+  createRelationForward(300000);
   intTests();
   deleteIndexFile();
   deleteRelation();
@@ -314,7 +312,7 @@ void test_int_out_of_bound() {
 // ##################################################################### //
 // ##################################################################### //
 
-void createRelationForward() {
+void createRelationForward(int relationSize) {
   std::vector<RecordId> ridVec;
   // destroy any old copies of relation file
   try {
@@ -350,7 +348,7 @@ void createRelationForward() {
   file1->writePage(new_page_number, new_page);
 }
 
-void createRelationBackward() {
+void createRelationBackward(int relationSize) {
   // destroy any old copies of relation file
   try {
     File::remove(relationName);
@@ -385,60 +383,8 @@ void createRelationBackward() {
   file1->writePage(new_page_number, new_page);
 }
 
-void createRelationRandom() {
+void createRelationRandom(int relationSize) {
   // destroy any old copies of relation file
-  try {
-    File::remove(relationName);
-  } catch (FileNotFoundException e) {
-  }
-  file1 = new PageFile(relationName, true);
-
-  // initialize all of record1.s to keep purify happy
-  memset(record1.s, ' ', sizeof(record1.s));
-  PageId new_page_number;
-  Page new_page = file1->allocatePage(new_page_number);
-
-  // insert records in random order
-
-  std::vector<int> intvec(relationSize);
-  for (int i = 0; i < relationSize; i++) {
-    intvec[i] = i;
-  }
-
-  long pos;
-  int val;
-  int i = 0;
-  while (i < relationSize) {
-    pos = random() % (relationSize - i);
-    val = intvec[pos];
-    sprintf(record1.s, "%05d string record", val);
-    record1.i = val;
-    record1.d = val;
-
-    std::string new_data(reinterpret_cast<char *>(&record1), sizeof(RECORD));
-
-    while (1) {
-      try {
-        new_page.insertRecord(new_data);
-        break;
-      } catch (InsufficientSpaceException e) {
-        file1->writePage(new_page_number, new_page);
-        new_page = file1->allocatePage(new_page_number);
-      }
-    }
-
-    int temp = intvec[relationSize - 1 - i];
-    intvec[relationSize - 1 - i] = intvec[pos];
-    intvec[pos] = temp;
-    i++;
-  }
-
-  file1->writePage(new_page_number, new_page);
-}
-
-void createMassiveRandom() {
-  // destroy any old copies of relation file
-  int relationSize = 400000;
   try {
     File::remove(relationName);
   } catch (FileNotFoundException e) {
