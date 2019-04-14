@@ -221,9 +221,9 @@ class BTreeIndex {
   NonLeafNodeInt *allocNonLeafNode(PageId &pid);
   PageId splitRoot(int midVal, PageId pid1, PageId pid2);
 
-  void initPageId();
+  void setPageIdForScan();
 
-  void initEntryIndex();
+  void setEntryIndexForScan();
 
   void setNextEntry();
 

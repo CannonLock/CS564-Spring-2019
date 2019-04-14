@@ -21,11 +21,74 @@ using namespace std;
 
 namespace badgerdb {
 
-/******************************* Generic Helper *******************************/
+// ##################################################################### //
+// ##################################################################### //
+// ##################################################################### //
+// #########################   Constructor   ########################### //
+// ##################################################################### //
+// ##################################################################### //
+// ##################################################################### //
 
 /**
- * This method takes in a page and checks if the page stores a leaf node or an
- * internal node.
+ * Constructor
+ *
+ * The constructor first checks if the specified index ﬁle exists.
+ * And index ﬁle name is constructed by concatenating the relational name with
+ * the offset of the attribute over which the index is built.
+ *
+ * If the index ﬁle exists, the ﬁle is opened. Else, a new index ﬁle is created.
+ *
+ * @param relationName The name of the relation on which to build the index.
+ * @param outIndexName The name of the index file.
+ * @param bufMgrIn The instance of the global buffer manager.
+ * @param attrByteOffset The byte offset of the attribute in the tuple on which
+ * to build the index.
+ * @param attrType The data type of the attribute we are indexing.
+ */
+BTreeIndex::BTreeIndex(const string &relationName, string &outIndexName,
+                       BufMgr *bufMgrIn, const int attrByteOffset,
+                       const Datatype attrType)
+    : attrByteOffset(attrByteOffset),
+      bufMgr(bufMgrIn),
+      attributeType(attrType) {
+  ostringstream idx_str{};
+  idx_str << relationName << ',' << attrByteOffset;
+  outIndexName = idx_str.str();
+
+  relationName.copy(indexMetaInfo.relationName, 20, 0);
+  indexMetaInfo.attrByteOffset = attrByteOffset;
+  indexMetaInfo.attrType = attrType;
+
+  file = new BlobFile(outIndexName, true);
+
+  LeafNodeInt *root;
+  bufMgr->allocPage(file, indexMetaInfo.rootPageNo, (Page *&)root);
+  root->level = -1;
+  bufMgr->unPinPage(file, indexMetaInfo.rootPageNo, true);
+
+  FileScan fscan(relationName, bufMgr);
+  try {
+    RecordId scanRid;
+    while (1) {
+      fscan.scanNext(scanRid);
+      const char *record = fscan.getRecord().c_str();
+      insertEntry(record + attrByteOffset, scanRid);
+    }
+  } catch (EndOfFileException e) {
+  }
+}
+
+// ##################################################################### //
+// ##################################################################### //
+// ##################################################################### //
+// #########################  Generic Helper  ########################## //
+// ##################################################################### //
+// ##################################################################### //
+// ##################################################################### //
+
+/**
+ * This method takes in a page and checks if the page stores a leaf node or
+ * an internal node.
  *
  * Assumption: The level for leaf node is -1.
  *
@@ -62,34 +125,6 @@ bool isLeafNodeFull(LeafNodeInt *node) {
 }
 
 /**
- * Given an integer array, find the index of the first integer larger than
- * (or equal to) the given key.
- *
- * Assumption: The array is sorted.
- *
- * @param arr an interger array
- * @param len the length of the array
- * @param key the target key
- * @param includeKey whether the current key is included
- *
- * @return a. the index of the first integer larger than the given key if
- *            includeKey = false
- *         b. the index of the first integer larger than or equal to the
- *            given key if includeKey = true
- *         c. -1 if the key is not found till the end of array
- */
-int findArrayIndex(const int *arr, int len, int key, bool includeKey = true) {
-  if (includeKey) {
-    for (int i = 0; i < len; i++)
-      if (arr[i] >= key) return i;
-  } else {
-    for (int i = 0; i < len; i++)
-      if (arr[i] > key) return i;
-  }
-  return -1;
-}
-
-/**
  * Returns the number of records stored in the leaf node.
  *
  * Assumption: 1. All records are continuously stored.
@@ -119,6 +154,34 @@ int getNonLeafLen(NonLeafNodeInt *node) {
     if (node->pageNoArray[i] == 0) return i;
 
   return INTARRAYNONLEAFSIZE + 1;
+}
+
+/**
+ * Given an integer array, find the index of the first integer larger than
+ * (or equal to) the given key.
+ *
+ * Assumption: The array is sorted.
+ *
+ * @param arr an interger array
+ * @param len the length of the array
+ * @param key the target key
+ * @param includeKey whether the current key is included
+ *
+ * @return a. the index of the first integer larger than the given key if
+ *            includeKey = false
+ *         b. the index of the first integer larger than or equal to the
+ *            given key if includeKey = true
+ *         c. -1 if the key is not found till the end of array
+ */
+int findArrayIndex(const int *arr, int len, int key, bool includeKey = true) {
+  if (includeKey) {
+    for (int i = 0; i < len; i++)
+      if (arr[i] >= key) return i;
+  } else {
+    for (int i = 0; i < len; i++)
+      if (arr[i] > key) return i;
+  }
+  return -1;
 }
 
 /**
@@ -178,7 +241,13 @@ int findScanIndexLeaf(LeafNodeInt *node, int key, bool includeKey) {
   return findArrayIndex(node->keyArray, getLeafLen(node), key, includeKey);
 }
 
-/******************************* Leaf Insert  *******************************/
+// ##################################################################### //
+// ##################################################################### //
+// ##################################################################### //
+// #########################   Leaf Insert   ########################### //
+// ##################################################################### //
+// ##################################################################### //
+// ##################################################################### //
 
 /**
  * Inserts the given key-record pair into the leaf node at the given insertion
@@ -202,7 +271,7 @@ void insertToLeafNode(LeafNodeInt *node, int i, int key, RecordId rid) {
 }
 
 /**
- * Splits a leaf node into 2.
+ * Splits a leaf node into two.
  * It moves the records after the given index in the node into the new node.
  *
  * @param node a pointer to the original node
@@ -296,7 +365,13 @@ PageId BTreeIndex::insertToLeafPage(Page *origPage, PageId origPageId, int key,
   return newPageId;
 }
 
-/******************************* Nonleaf Insert *******************************/
+// ##################################################################### //
+// ##################################################################### //
+// ##################################################################### //
+// #######################   NonLeaf Insert   ########################## //
+// ##################################################################### //
+// ##################################################################### //
+// ##################################################################### //
 
 /**
  * Inserts the given key-(page number) pair into the given leaf node at the
@@ -448,131 +523,6 @@ PageId BTreeIndex::insertHelper(PageId origPageId, int key, RecordId rid,
   return newPageId;
 }
 
-/*******************************  Scan  *******************************/
-
-/**
- * Recursively find the page id of the first element larger than or equal to the
- * lower bound given.
- */
-void BTreeIndex::initPageId() {
-  bufMgr->readPage(file, currentPageNum, currentPageData);
-  if (isLeaf(currentPageData)) return;
-
-  NonLeafNodeInt *node = (NonLeafNodeInt *)currentPageData;
-
-  bufMgr->unPinPage(file, currentPageNum, false);
-  currentPageNum = node->pageNoArray[findIndexNonLeaf(node, lowValInt)];
-  initPageId();
-}
-
-/**
- * Change the currently scanning page to the next page pointed to by the current
- * page.
- * @param node the node stored in the currently scanning page.
- */
-void BTreeIndex::moveToNextPage(LeafNodeInt *node) {
-  bufMgr->unPinPage(file, currentPageNum, false);
-  currentPageNum = node->rightSibPageNo;
-  bufMgr->readPage(file, currentPageNum, currentPageData);
-  nextEntry = 0;
-}
-
-/**
- * Find the first element in the currently scanning page that is within the
- * given bound.
- */
-void BTreeIndex::initEntryIndex() {
-  LeafNodeInt *node = (LeafNodeInt *)currentPageData;
-  int entryIndex = findScanIndexLeaf(node, lowValInt, lowOp == GTE);
-  if (entryIndex == -1)
-    moveToNextPage(node);
-  else
-    nextEntry = entryIndex;
-}
-
-/**
- * Continue scanning the next entry. If the currently scanning entry is the last
- * element in this page, set the current scanning page to the next page.
- */
-void BTreeIndex::setNextEntry() {
-  nextEntry++;
-  LeafNodeInt *node = (LeafNodeInt *)currentPageData;
-  if (nextEntry >= INTARRAYLEAFSIZE ||
-      node->ridArray[nextEntry].page_number == 0) {
-    moveToNextPage(node);
-  }
-}
-
-/**
- * Constructor
- *
- * The constructor first checks if the specified index ﬁle exists.
- * And index ﬁle name is constructed by concatenating the relational name with
- * the offset of the attribute over which the index is built.
- *
- * If the index ﬁle exists, the ﬁle is opened. Else, a new index ﬁle is created.
- *
- * @param relationName The name of the relation on which to build the index.
- * @param outIndexName The name of the index file.
- * @param bufMgrIn The instance of the global buffer manager.
- * @param attrByteOffset The byte offset of the attribute in the tuple on which
- * to build the index.
- * @param attrType The data type of the attribute we are indexing.
- */
-BTreeIndex::BTreeIndex(const string &relationName, string &outIndexName,
-                       BufMgr *bufMgrIn, const int attrByteOffset,
-                       const Datatype attrType)
-    : attrByteOffset(attrByteOffset),
-      bufMgr(bufMgrIn),
-      attributeType(attrType) {
-  ostringstream idx_str;
-  idx_str << relationName << ',' << attrByteOffset;
-  outIndexName = idx_str.str();
-
-  relationName.copy(indexMetaInfo.relationName, 20, 0);
-  indexMetaInfo.attrByteOffset = attrByteOffset;
-  indexMetaInfo.attrType = attrType;
-
-  file = new BlobFile(outIndexName, true);
-
-  LeafNodeInt *root;
-  bufMgr->allocPage(file, indexMetaInfo.rootPageNo, (Page *&)root);
-  root->level = -1;
-  bufMgr->unPinPage(file, indexMetaInfo.rootPageNo, true);
-
-  FileScan fscan(relationName, bufMgr);
-  try {
-    RecordId scanRid;
-    while (1) {
-      fscan.scanNext(scanRid);
-      std::string recordStr = fscan.getRecord();
-      const char *record = recordStr.c_str();
-      int key = *((int *)(record + attrByteOffset));
-      insertEntry(&key, scanRid);
-    }
-  } catch (EndOfFileException e) {
-    std::cout << "Read all records" << std::endl;
-  }
-}
-
-/**
- * Destructor
- *
- * Perform any cleanup that may be necessary, including
- *      clearing up any state variables,
- *      unpinning any B+ Tree pages that are pinned, and
- *      flushing the index file (by calling bufMgr->flushFile()).
- *
- * Note that this method does not delete the index file! But, deletion of the
- * file object is required, which will call the destructor of File class causing
- * the index file to be closed.
- */
-BTreeIndex::~BTreeIndex() {
-  if (scanExecuting) endScan();
-  bufMgr->flushFile(file);
-  delete file;
-}
-
 /**
  * Create a new root with midVal, pid1 and pid2.
  *
@@ -615,6 +565,54 @@ const void BTreeIndex::insertEntry(const void *key, const RecordId rid) {
     indexMetaInfo.rootPageNo = splitRoot(midval, indexMetaInfo.rootPageNo, pid);
 }
 
+// ##################################################################### //
+// ##################################################################### //
+// ##################################################################### //
+// #######################        Scan        ########################## //
+// ##################################################################### //
+// ##################################################################### //
+// ##################################################################### //
+
+/**
+ * Change the currently scanning page to the next page pointed to by the current
+ * page.
+ * @param node the node stored in the currently scanning page.
+ */
+void BTreeIndex::moveToNextPage(LeafNodeInt *node) {
+  bufMgr->unPinPage(file, currentPageNum, false);
+  currentPageNum = node->rightSibPageNo;
+  bufMgr->readPage(file, currentPageNum, currentPageData);
+  nextEntry = 0;
+}
+
+/**
+ * Recursively find the page id of the first element larger than or equal to the
+ * lower bound given.
+ */
+void BTreeIndex::setPageIdForScan() {
+  bufMgr->readPage(file, currentPageNum, currentPageData);
+  if (isLeaf(currentPageData)) return;
+
+  NonLeafNodeInt *node = (NonLeafNodeInt *)currentPageData;
+
+  bufMgr->unPinPage(file, currentPageNum, false);
+  currentPageNum = node->pageNoArray[findIndexNonLeaf(node, lowValInt)];
+  setPageIdForScan();
+}
+
+/**
+ * Find the first element in the currently scanning page that is within the
+ * given bound.
+ */
+void BTreeIndex::setEntryIndexForScan() {
+  LeafNodeInt *node = (LeafNodeInt *)currentPageData;
+  int entryIndex = findScanIndexLeaf(node, lowValInt, lowOp == GTE);
+  if (entryIndex == -1)
+    moveToNextPage(node);
+  else
+    nextEntry = entryIndex;
+}
+
 /**
  *
  * This method is used to begin a filtered scan” of the index.
@@ -646,8 +644,21 @@ const void BTreeIndex::startScan(const void *lowValParm,
 
   currentPageNum = indexMetaInfo.rootPageNo;
 
-  initPageId();
-  initEntryIndex();
+  setPageIdForScan();
+  setEntryIndexForScan();
+}
+
+/**
+ * Continue scanning the next entry. If the currently scanning entry is the last
+ * element in this page, set the current scanning page to the next page.
+ */
+void BTreeIndex::setNextEntry() {
+  nextEntry++;
+  LeafNodeInt *node = (LeafNodeInt *)currentPageData;
+  if (nextEntry >= INTARRAYLEAFSIZE ||
+      node->ridArray[nextEntry].page_number == 0) {
+    moveToNextPage(node);
+  }
 }
 
 /**
@@ -691,6 +702,32 @@ const void BTreeIndex::endScan() {
   if (!scanExecuting) throw ScanNotInitializedException();
   scanExecuting = false;
   bufMgr->unPinPage(file, currentPageNum, false);
+}
+
+// ##################################################################### //
+// ##################################################################### //
+// ##################################################################### //
+// ##########################   Destructor   ########################### //
+// ##################################################################### //
+// ##################################################################### //
+// ##################################################################### //
+
+/**
+ * Destructor
+ *
+ * Perform any cleanup that may be necessary, including
+ *      clearing up any state variables,
+ *      unpinning any B+ Tree pages that are pinned, and
+ *      flushing the index file (by calling bufMgr->flushFile()).
+ *
+ * Note that this method does not delete the index file! But, deletion of the
+ * file object is required, which will call the destructor of File class causing
+ * the index file to be closed.
+ */
+BTreeIndex::~BTreeIndex() {
+  if (scanExecuting) endScan();
+  bufMgr->flushFile(file);
+  delete file;
 }
 
 }  // namespace badgerdb
