@@ -75,7 +75,6 @@ void createRelationBackward(int rel = relationSize);
 
 void createRelationRandom(int rel = relationSize);
 
-
 std::vector<int> *createTrueRandom(int from, int to, int rate);
 
 void intTests();
@@ -229,7 +228,8 @@ void test4_out_of_bound() {
 void test5_noncontiguous_random() {
   std::cout << "---------------------" << std::endl;
   std::cout << "test5_noncontiguous_random" << std::endl;
-  std::vector<int> *sortedvec = createTrueRandom(-relationSize, relationSize, 10);
+  std::vector<int> *sortedvec =
+      createTrueRandom(-relationSize, relationSize, 10);
   randomIntTests(sortedvec);
   free(sortedvec);
   deleteIndexFile();
@@ -475,8 +475,6 @@ std::vector<int> *createTrueRandom(int from, int to, int rate) {
   std::vector<int> shufflevec = *sorted_vec;
   std::random_shuffle(shufflevec.begin(), shufflevec.end());
 
-  int val;
-  int i = 0;
   for (int val : shufflevec) {
     sprintf(record1.s, "%05d string record", val);
     record1.i = val;

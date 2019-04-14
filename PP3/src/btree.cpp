@@ -79,11 +79,12 @@ NonLeafNodeInt *BTreeIndex::allocNonLeafNode(PageId &newPageId) {
  * @param attrType The data type of the attribute we are indexing.
  */
 BTreeIndex::BTreeIndex(const string &relationName, string &outIndexName,
-                       BufMgr *bufMgrIn, const int attrByteOffset,
-                       const Datatype attrType)
-    : attrByteOffset(attrByteOffset),
-      bufMgr(bufMgrIn),
-      attributeType(attrType) {
+                       BufMgr *bufMgrIn, const int attrByteOffset_,
+                       const Datatype attrType) {
+  bufMgr = bufMgrIn;
+  attrByteOffset = attrByteOffset_;
+  attributeType = attrType;
+
   ostringstream idx_str{};
   idx_str << relationName << ',' << attrByteOffset;
   outIndexName = idx_str.str();
@@ -215,7 +216,8 @@ int BTreeIndex::getNonLeafLen(NonLeafNodeInt *node) {
  *            given key if includeKey = true
  *         c. -1 if the key is not found till the end of array
  */
-int BTreeIndex::findArrayIndex(const int *arr, int len, int key, bool includeKey) {
+int BTreeIndex::findArrayIndex(const int *arr, int len, int key,
+                               bool includeKey) {
   if (includeKey) {
     for (int i = 0; i < len; i++) {
       if (arr[i] >= key) return i;
@@ -302,7 +304,8 @@ int BTreeIndex::findScanIndexLeaf(LeafNodeInt *node, int key, bool includeKey) {
  * @param key the key of the key-record pair to be inserted
  * @param rid the record ID of the key-record pair to be inserted
  */
-void BTreeIndex::insertToLeafNode(LeafNodeInt *node, int i, int key, RecordId rid) {
+void BTreeIndex::insertToLeafNode(LeafNodeInt *node, int i, int key,
+                                  RecordId rid) {
   const size_t len = INTARRAYLEAFSIZE - i - 1;
 
   // shift items to add space for the new element
@@ -323,7 +326,8 @@ void BTreeIndex::insertToLeafNode(LeafNodeInt *node, int i, int key, RecordId ri
  * @param key the key of the key-(page number) pair
  * @param pid the page number of the key-(page number) pair
  */
-void BTreeIndex::insertToNonLeafNode(NonLeafNodeInt *n, int i, int key, PageId pid) {
+void BTreeIndex::insertToNonLeafNode(NonLeafNodeInt *n, int i, int key,
+                                     PageId pid) {
   const size_t len = INTARRAYLEAFSIZE - i - 1;
 
   // shift items to add space for the new element
@@ -351,7 +355,8 @@ void BTreeIndex::insertToNonLeafNode(NonLeafNodeInt *n, int i, int key, PageId p
  * @param newNode a pointer to the new node
  * @param index the index where the split occurs.
  */
-void BTreeIndex::splitLeafNode(LeafNodeInt *node, LeafNodeInt *newNode, int index) {
+void BTreeIndex::splitLeafNode(LeafNodeInt *node, LeafNodeInt *newNode,
+                               int index) {
   const size_t len = INTARRAYLEAFSIZE - index;
 
   // copy elements from old node to new node
@@ -376,8 +381,8 @@ void BTreeIndex::splitLeafNode(LeafNodeInt *node, LeafNodeInt *newNode, int inde
  *
  * @return a pointer to the newly created internal node.
  */
-void BTreeIndex::splitNonLeafNode(NonLeafNodeInt *curr, NonLeafNodeInt *next, int i,
-                      bool keepMidKey) {
+void BTreeIndex::splitNonLeafNode(NonLeafNodeInt *curr, NonLeafNodeInt *next,
+                                  int i, bool keepMidKey) {
   size_t len = INTARRAYNONLEAFSIZE - i;
 
   // copy keys from old node to new node
