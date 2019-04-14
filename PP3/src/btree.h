@@ -213,9 +213,11 @@ class BTreeIndex {
   Page *getPageByPid(PageId pid);
 
   PageId insertToLeafPage(LeafNodeInt *origNode, PageId origPageId, int key,
-                          const RecordId &rid, int *midVal);
+                          const RecordId &rid, int &midVal);
 
-  PageId insertHelper(PageId pid, int key, RecordId rid, int *midVal);
+  PageId insertHelper(PageId pid, int key, RecordId rid, int &midVal);
+
+  LeafNodeInt *allocLeafNode(PageId &pid);
 
   void initPageId();
 
