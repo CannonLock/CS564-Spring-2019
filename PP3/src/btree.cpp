@@ -94,7 +94,7 @@ BTreeIndex::BTreeIndex(const string &relationName, string &outIndexName,
 
   file = new BlobFile(outIndexName, true);
 
-  LeafNodeInt *root = allocLeafNode(indexMetaInfo.rootPageNo);
+  allocLeafNode(indexMetaInfo.rootPageNo);
   bufMgr->unPinPage(file, indexMetaInfo.rootPageNo, true);
 
   FileScan fscan(relationName, bufMgr);
@@ -152,7 +152,8 @@ bool isNonLeafNodeFull(NonLeafNodeInt *node) {
  *         false if a leaf node is not full
  */
 bool isLeafNodeFull(LeafNodeInt *node) {
-  return node->ridArray[INTARRAYLEAFSIZE - 1] != RecordId{};
+  return !(node->ridArray[INTARRAYLEAFSIZE - 1].page_number == 0 &&
+           node->ridArray[INTARRAYLEAFSIZE - 1].slot_number == 0);
 }
 
 // ##################################################################### //
@@ -173,9 +174,11 @@ bool isLeafNodeFull(LeafNodeInt *node) {
  * @return the number of records stored in the leaf node
  */
 int getLeafLen(LeafNodeInt *node) {
-  for (int i = 0; i < INTARRAYLEAFSIZE; i++)
-    if (node->ridArray[i] == RecordId{}) return i;
-
+  for (int i = 0; i < INTARRAYLEAFSIZE; i++) {
+    if (node->ridArray[i].page_number == 0 &&
+        node->ridArray[i].slot_number == 0)
+      return i;
+  }
   return INTARRAYLEAFSIZE;
 }
 
@@ -673,6 +676,15 @@ const void BTreeIndex::startScan(const void *lowValParm,
 
   setPageIdForScan();
   setEntryIndexForScan();
+
+  LeafNodeInt *node = (LeafNodeInt *)currentPageData;
+  RecordId outRid = node->ridArray[nextEntry];
+  if ((outRid.page_number == 0 && outRid.slot_number == 0) ||
+      node->keyArray[nextEntry] > highValInt ||
+      (node->keyArray[nextEntry] == highValInt && highOp == LT)) {
+    endScan();
+    throw NoSuchKeyFoundException();
+  }
 }
 
 /**
@@ -712,11 +724,11 @@ const void BTreeIndex::scanNext(RecordId &outRid) {
   outRid = node->ridArray[nextEntry];
   int val = node->keyArray[nextEntry];
 
-  if (outRid == RecordId{} ||               // current record ID is empty
-      val > highValInt ||                   // value is out of range
+  if ((outRid.page_number == 0 &&
+       outRid.slot_number == 0) ||            // current record ID is empty
+      val > highValInt ||                     // value is out of range
       (val == highValInt && highOp == LT)) {  // value reaches the higher end
-    endScan();
-	throw IndexScanCompletedException();
+    throw IndexScanCompletedException();
   }
   setNextEntry();
 }

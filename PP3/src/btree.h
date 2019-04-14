@@ -208,17 +208,15 @@ class BTreeIndex {
 
   struct IndexMetaInfo indexMetaInfo {};
 
-  PageId createPageForNode(void *);
-
-  Page *getPageByPid(PageId pid);
-
   PageId insertToLeafPage(Page *origPage, PageId origPageId, int key,
                           RecordId rid, int &midVal);
 
   PageId insert(PageId pid, int key, RecordId rid, int &midVal);
 
   LeafNodeInt *allocLeafNode(PageId &pid);
+
   NonLeafNodeInt *allocNonLeafNode(PageId &pid);
+
   PageId splitRoot(int midVal, PageId pid1, PageId pid2);
 
   void setPageIdForScan();

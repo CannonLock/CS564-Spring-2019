@@ -6,6 +6,7 @@
  * of Wisconsin-Madison.
  */
 
+#include <algorithm>
 #include <vector>
 #include "btree.h"
 #include "exceptions/bad_opcodes_exception.h"
@@ -61,9 +62,13 @@ RECORD record1;
 
 BufMgr *bufMgr = new BufMgr(100);
 
-// -----------------------------------------------------------------------------
-// Forward declarations
-// -----------------------------------------------------------------------------
+// ##################################################################### //
+// ##################################################################### //
+// ##################################################################### //
+// ######################  Forward Declarations ######################## //
+// ##################################################################### //
+// ##################################################################### //
+// ##################################################################### //
 
 void createRelationForward();
 
@@ -71,26 +76,46 @@ void createRelationBackward();
 
 void createRelationRandom();
 
+void createMassiveRandom();
+
+std::vector<int> *createTrueRandom(int from, int to, int rate);
+
 void intTests();
 
 int intScan(BTreeIndex *index, int lowVal, Operator lowOp, int highVal,
-            Operator highOp);
+            Operator highOp, std::vector<int> *ret_vector = nullptr);
 
 void indexTests();
 
-void test1();
+void test1_contiguous_ascending();
 
-void test2();
+void test2_contiguous_descending();
 
-void test3();
+void test3_contiguous_random();
 
-void test4();
+void test4_out_of_bound();
 
-void stress_test();
+void test5_noncontiguous_random();
 
-void errorTests();
+void test6_stress_test();
+
+void test7_error_test();
+
+void randomIntTests(std::vector<int> *sortedvec);
+
+void deleteIndexFile();
+
+void test_int_out_of_bound();
 
 void deleteRelation();
+
+// ##################################################################### //
+// ##################################################################### //
+// ##################################################################### //
+// ######################          Main         ######################## //
+// ##################################################################### //
+// ##################################################################### //
+// ##################################################################### //
 
 int main(int argc, char **argv) {
   std::cout << "leaf size:" << INTARRAYLEAFSIZE
@@ -144,48 +169,150 @@ int main(int argc, char **argv) {
 
   File::remove(relationName);
 
-  //  test1();
-  //  test2();
-  // test3();
-  test4();
-  // errorTests();
+  test1_contiguous_ascending();
+  test2_contiguous_descending();
+  test3_contiguous_random();
+  test4_out_of_bound();
+  test5_noncontiguous_random();
+  test6_stress_test();
+  test7_error_test();
 
   return 1;
 }
 
-void test1() {
+// ##################################################################### //
+// ##################################################################### //
+// ##################################################################### //
+// ######################      Test Runner      ######################## //
+// ##################################################################### //
+// ##################################################################### //
+// ##################################################################### //
+
+void test1_contiguous_ascending() {
   // Create a relation with tuples valued 0 to relationSize and perform index
   // tests on attributes of all three types (int, double, string)
   std::cout << "---------------------" << std::endl;
   std::cout << "createRelationForward" << std::endl;
   createRelationForward();
-  indexTests();
+  intTests();
+  deleteIndexFile();
   deleteRelation();
 }
 
-void test2() {
+void test2_contiguous_descending() {
   // Create a relation with tuples valued 0 to relationSize in reverse order and
   // perform index tests on attributes of all three types (int, double, string)
   std::cout << "----------------------" << std::endl;
   std::cout << "createRelationBackward" << std::endl;
   createRelationBackward();
-  indexTests();
+  intTests();
+  deleteIndexFile();
   deleteRelation();
 }
 
-void test3() {
+void test3_contiguous_random() {
   // Create a relation with tuples valued 0 to relationSize in random order and
   // perform index tests on attributes of all three types (int, double, string)
   std::cout << "--------------------" << std::endl;
   std::cout << "createRelationRandom" << std::endl;
   createRelationRandom();
-  indexTests();
+  intTests();
+  deleteIndexFile();
   deleteRelation();
 }
 
-// -----------------------------------------------------------------------------
-// createRelationForward
-// -----------------------------------------------------------------------------
+void test4_out_of_bound() {
+  std::cout << "---------------------" << std::endl;
+  std::cout << "index out of bound test" << std::endl;
+  createRelationForward();
+  test_int_out_of_bound();
+  deleteIndexFile();
+  deleteRelation();
+}
+
+void test5_noncontiguous_random() {
+  std::cout << "---------------------" << std::endl;
+  std::cout << "random test" << std::endl;
+  std::vector<int> *sortedvec = createTrueRandom(-5000, 5000, 10);
+  randomIntTests(sortedvec);
+  free(sortedvec);
+  deleteIndexFile();
+  deleteRelation();
+}
+
+void test6_stress_test() {
+  std::cout << "---------------------" << std::endl;
+  std::cout << "stress test" << std::endl;
+  createMassiveRandom();
+  intTests();
+  deleteIndexFile();
+  deleteRelation();
+}
+
+// ##################################################################### //
+// ##################################################################### //
+// ##################################################################### //
+// ######################     Test B+ Tree      ######################## //
+// ##################################################################### //
+// ##################################################################### //
+// ##################################################################### //
+
+void randomIntTests(std::vector<int> *sortedvec) {
+  std::cout << "Create a B+ Tree index on the integer field" << std::endl;
+  BTreeIndex index(relationName, intIndexName, bufMgr, offsetof(tuple, i),
+                   INTEGER);
+  std::vector<int> resultvec;
+
+  int minVal = sortedvec->front();
+  int maxVal = sortedvec->back();
+  int numElem = sortedvec->size();
+
+  checkPassFail(intScan(&index, minVal, GTE, maxVal, LTE, &resultvec), numElem);
+  if (*sortedvec == resultvec)
+    std::cout << "Random int test passed at line no:" << __LINE__ << std::endl;
+  else
+    std::cout << "Random int test failed at line no:" << __LINE__ << std::endl;
+}
+
+void intTests() {
+  std::cout << "Create a B+ Tree index on the integer field" << std::endl;
+  BTreeIndex index(relationName, intIndexName, bufMgr, offsetof(tuple, i),
+                   INTEGER);
+
+  // run some tests
+  checkPassFail(intScan(&index, 25, GT, 40, LT), 14);
+  checkPassFail(intScan(&index, 20, GTE, 35, LTE), 16);
+  checkPassFail(intScan(&index, -3, GT, 3, LT), 3);
+  checkPassFail(intScan(&index, 996, GT, 1001, LT), 4);
+  checkPassFail(intScan(&index, 0, GT, 1, LT), 0);
+  checkPassFail(intScan(&index, 300, GT, 400, LT), 99);
+  checkPassFail(intScan(&index, 3000, GTE, 4000, LT), 1000);
+}
+
+void test_int_out_of_bound() {
+  std::cout << "Create a B+ Tree index on the integer field" << std::endl;
+  BTreeIndex index(relationName, intIndexName, bufMgr, offsetof(tuple, i),
+                   INTEGER);
+
+  checkPassFail(intScan(&index, 3000, GTE, 6000, LT), 2000);
+  checkPassFail(intScan(&index, 4999, GTE, 5010, LT), 1);
+
+  checkPassFail(intScan(&index, 5500, GTE, 6000, LT), 0);
+  checkPassFail(intScan(&index, 4999, GT, 6000, LT), 0);
+  checkPassFail(intScan(&index, -3000, GT, 0, LT), 0);
+
+  checkPassFail(intScan(&index, -3000, GT, 0, LTE), 1);
+  checkPassFail(intScan(&index, -3000, GT, 5, LTE), 6);
+  checkPassFail(intScan(&index, -3000, GT, 200, LT), 200);
+}
+
+// ##################################################################### //
+// ##################################################################### //
+// ##################################################################### //
+// ######################    Create Relation    ######################## //
+// ##################################################################### //
+// ##################################################################### //
+// ##################################################################### //
 
 void createRelationForward() {
   std::vector<RecordId> ridVec;
@@ -223,10 +350,6 @@ void createRelationForward() {
   file1->writePage(new_page_number, new_page);
 }
 
-// -----------------------------------------------------------------------------
-// createRelationBackward
-// -----------------------------------------------------------------------------
-
 void createRelationBackward() {
   // destroy any old copies of relation file
   try {
@@ -261,10 +384,6 @@ void createRelationBackward() {
 
   file1->writePage(new_page_number, new_page);
 }
-
-// -----------------------------------------------------------------------------
-// createRelationRandom
-// -----------------------------------------------------------------------------
 
 void createRelationRandom() {
   // destroy any old copies of relation file
@@ -317,103 +436,117 @@ void createRelationRandom() {
   file1->writePage(new_page_number, new_page);
 }
 
-// -----------------------------------------------------------------------------
-// indexTests
-// -----------------------------------------------------------------------------
-
-void indexTests() {
-  if (testNum == 1) {
-    intTests();
-    try {
-      File::remove(intIndexName);
-    } catch (FileNotFoundException e) {
-    }
-  }
-}
-
-// -----------------------------------------------------------------------------
-// intTests
-// -----------------------------------------------------------------------------
-
-void intTests() {
-  std::cout << "Create a B+ Tree index on the integer field" << std::endl;
-  BTreeIndex index(relationName, intIndexName, bufMgr, offsetof(tuple, i),
-                   INTEGER);
-
-  // run some tests
-  checkPassFail(intScan(&index, 25, GT, 40, LT), 14);
-  checkPassFail(intScan(&index, 20, GTE, 35, LTE), 16);
-  checkPassFail(intScan(&index, -3, GT, 3, LT), 3);
-  checkPassFail(intScan(&index, 996, GT, 1001, LT), 4);
-  checkPassFail(intScan(&index, 0, GT, 1, LT), 0);
-  checkPassFail(intScan(&index, 300, GT, 400, LT), 99);
-  checkPassFail(intScan(&index, 3000, GTE, 4000, LT), 1000);
-}
-
-int intScan(BTreeIndex *index, int lowVal, Operator lowOp, int highVal,
-            Operator highOp) {
-  RecordId scanRid;
-  Page *curPage;
-
-  std::cout << "Scan for ";
-  if (lowOp == GT) {
-    std::cout << "(";
-  } else {
-    std::cout << "[";
-  }
-  std::cout << lowVal << "," << highVal;
-  if (highOp == LT) {
-    std::cout << ")";
-  } else {
-    std::cout << "]";
-  }
-  std::cout << std::endl;
-
-  int numResults = 0;
-
+void createMassiveRandom() {
+  // destroy any old copies of relation file
+  int relationSize = 400000;
   try {
-    index->startScan(&lowVal, lowOp, &highVal, highOp);
-  } catch (NoSuchKeyFoundException e) {
-    std::cout << "No Key Found satisfying the scan criteria." << std::endl;
-    return 0;
+    File::remove(relationName);
+  } catch (FileNotFoundException e) {
+  }
+  file1 = new PageFile(relationName, true);
+
+  // initialize all of record1.s to keep purify happy
+  memset(record1.s, ' ', sizeof(record1.s));
+  PageId new_page_number;
+  Page new_page = file1->allocatePage(new_page_number);
+
+  // insert records in random order
+
+  std::vector<int> intvec(relationSize);
+  for (int i = 0; i < relationSize; i++) {
+    intvec[i] = i;
   }
 
-  while (1) {
-    try {
-      index->scanNext(scanRid);
-      bufMgr->readPage(file1, scanRid.page_number, curPage);
-      RECORD myRec = *(
-          reinterpret_cast<const RECORD *>(curPage->getRecord(scanRid).data()));
-      bufMgr->unPinPage(file1, scanRid.page_number, false);
+  long pos;
+  int val;
+  int i = 0;
+  while (i < relationSize) {
+    pos = random() % (relationSize - i);
+    val = intvec[pos];
+    sprintf(record1.s, "%05d string record", val);
+    record1.i = val;
+    record1.d = val;
 
-      // if (numResults < 5) {
-      std::cout << "at:" << scanRid.page_number << "," << scanRid.slot_number;
-      std::cout << " -->:" << myRec.i << ":" << myRec.d << ":" << myRec.s << ":"
-                << std::endl;
-      // } else if (numResults == 5) {
-      // std::cout << "..." << std::endl;
-      // }
-    } catch (IndexScanCompletedException e) {
-      break;
+    std::string new_data(reinterpret_cast<char *>(&record1), sizeof(RECORD));
+
+    while (1) {
+      try {
+        new_page.insertRecord(new_data);
+        break;
+      } catch (InsufficientSpaceException e) {
+        file1->writePage(new_page_number, new_page);
+        new_page = file1->allocatePage(new_page_number);
+      }
     }
 
-    numResults++;
+    int temp = intvec[relationSize - 1 - i];
+    intvec[relationSize - 1 - i] = intvec[pos];
+    intvec[pos] = temp;
+    i++;
   }
 
-  if (numResults >= 5) {
-    std::cout << "Number of results: " << numResults << std::endl;
-  }
-  index->endScan();
-  std::cout << std::endl;
-
-  return numResults;
+  file1->writePage(new_page_number, new_page);
 }
 
-// -----------------------------------------------------------------------------
-// errorTests
-// -----------------------------------------------------------------------------
+// p = (rate - 1) / rate
+bool randBool(int rate) { return (rand() % rate) == 0; }
 
-void errorTests() {
+std::vector<int> *createTrueRandom(int from, int to, int rate) {
+  // destroy any old copies of relation file
+  try {
+    File::remove(relationName);
+  } catch (FileNotFoundException e) {
+  }
+  file1 = new PageFile(relationName, true);
+
+  // initialize all of record1.s to keep purify happy
+  memset(record1.s, ' ', sizeof(record1.s));
+  PageId new_page_number;
+  Page new_page = file1->allocatePage(new_page_number);
+
+  // insert records in random order
+
+  std::vector<int> *sorted_vec = new std::vector<int>;
+
+  for (int i = from; i < to; i++)
+    if (randBool(rate)) sorted_vec->push_back(i);
+
+  std::vector<int> shufflevec = *sorted_vec;
+  std::random_shuffle(shufflevec.begin(), shufflevec.end());
+
+  int val;
+  int i = 0;
+  for (int val : shufflevec) {
+    sprintf(record1.s, "%05d string record", val);
+    record1.i = val;
+    record1.d = val;
+
+    std::string new_data(reinterpret_cast<char *>(&record1), sizeof(RECORD));
+
+    while (1) {
+      try {
+        new_page.insertRecord(new_data);
+        break;
+      } catch (InsufficientSpaceException e) {
+        file1->writePage(new_page_number, new_page);
+        new_page = file1->allocatePage(new_page_number);
+      }
+    }
+  }
+
+  file1->writePage(new_page_number, new_page);
+  return sorted_vec;
+}
+
+// ##################################################################### //
+// ##################################################################### //
+// ##################################################################### //
+// ######################      Error Tests      ######################## //
+// ##################################################################### //
+// ##################################################################### //
+// ##################################################################### //
+
+void test7_error_test() {
   std::cout << "Error handling tests" << std::endl;
   std::cout << "--------------------" << std::endl;
   // Given error test
@@ -501,6 +634,18 @@ void errorTests() {
   deleteRelation();
 }
 
+// ##################################################################### //
+// ##################################################################### //
+// ##################################################################### //
+// ######################         Helper        ######################## //
+// ##################################################################### //
+// ##################################################################### //
+// ##################################################################### //
+void indexTests() {
+  intTests();
+  deleteIndexFile();
+}
+
 void deleteRelation() {
   if (file1) {
     bufMgr->flushFile(file1);
@@ -513,84 +658,70 @@ void deleteRelation() {
   }
 }
 
-void test_int_out_of_bound() {
-  std::cout << "Create a B+ Tree index on the integer field" << std::endl;
-  BTreeIndex index(relationName, intIndexName, bufMgr, offsetof(tuple, i),
-                   INTEGER);
-  checkPassFail(intScan(&index, 3000, GTE, 6000, LT), 2000);
-  checkPassFail(intScan(&index, 4999, GTE, 5010, LT), 1);
-  checkPassFail(intScan(&index, 5500, GTE, 6000, LT), 0);
-  checkPassFail(intScan(&index, 4999, GT, 6000, LT), 0);
-  checkPassFail(intScan(&index, -3000, GT, 0, LT), 0);
-  checkPassFail(intScan(&index, -3000, GT, 0, LTE), 1);
-  checkPassFail(intScan(&index, -3000, GT, 5, LTE), 6);
-  checkPassFail(intScan(&index, -3000, GT, 200, LT), 200);
-}
-
-void test4() {
-  std::cout << "---------------------" << std::endl;
-  std::cout << "index out of bound test" << std::endl;
-  createRelationForward();
-  test_int_out_of_bound();
-  deleteRelation();
-}
-
-void createMassiveRandom() {
-  // destroy any old copies of relation file
+void deleteIndexFile() {
   try {
-    File::remove(relationName);
+    File::remove(intIndexName);
   } catch (FileNotFoundException e) {
   }
-  file1 = new PageFile(relationName, true);
-
-  // initialize all of record1.s to keep purify happy
-  memset(record1.s, ' ', sizeof(record1.s));
-  PageId new_page_number;
-  Page new_page = file1->allocatePage(new_page_number);
-
-  // insert records in random order
-
-  std::vector<int> intvec(relationSize);
-  for (int i = 0; i < relationSize; i++) {
-    intvec[i] = i;
-  }
-
-  int relationSize = 400000;
-  long pos;
-  int val;
-  int i = 0;
-  while (i < relationSize) {
-    pos = random() % (relationSize - i);
-    val = intvec[pos];
-    sprintf(record1.s, "%05d string record", val);
-    record1.i = val;
-    record1.d = val;
-
-    std::string new_data(reinterpret_cast<char *>(&record1), sizeof(RECORD));
-
-    while (1) {
-      try {
-        new_page.insertRecord(new_data);
-        break;
-      } catch (InsufficientSpaceException e) {
-        file1->writePage(new_page_number, new_page);
-        new_page = file1->allocatePage(new_page_number);
-      }
-    }
-
-    int temp = intvec[relationSize - 1 - i];
-    intvec[relationSize - 1 - i] = intvec[pos];
-    intvec[pos] = temp;
-    i++;
-  }
-
-  file1->writePage(new_page_number, new_page);
 }
 
-void stress_test() {
-  std::cout << "---------------------" << std::endl;
-  std::cout << "stress test" << std::endl;
-  createMassiveRandom();
-  indexTests();
-  deleteRelation();
+int intScan(BTreeIndex *index, int lowVal, Operator lowOp, int highVal,
+            Operator highOp, std::vector<int> *ret_vector) {
+  RecordId scanRid;
+  Page *curPage;
+
+  std::cout << "Scan for ";
+  if (lowOp == GT) {
+    std::cout << "(";
+  } else {
+    std::cout << "[";
+  }
+  std::cout << lowVal << "," << highVal;
+  if (highOp == LT) {
+    std::cout << ")";
+  } else {
+    std::cout << "]";
+  }
+  std::cout << std::endl;
+
+  int numResults = 0;
+
+  try {
+    index->startScan(&lowVal, lowOp, &highVal, highOp);
+  } catch (NoSuchKeyFoundException e) {
+    std::cout << "No Key Found satisfying the scan criteria." << std::endl;
+    return 0;
+  }
+
+  while (1) {
+    try {
+      index->scanNext(scanRid);
+      bufMgr->readPage(file1, scanRid.page_number, curPage);
+      RECORD myRec = *(
+          reinterpret_cast<const RECORD *>(curPage->getRecord(scanRid).data()));
+      bufMgr->unPinPage(file1, scanRid.page_number, false);
+
+      if (ret_vector) ret_vector->push_back(myRec.i);
+
+      if (numResults < 5) {
+        std::cout << "at:" << scanRid.page_number << "," << scanRid.slot_number;
+        std::cout << " -->:" << myRec.i << ":" << myRec.d << ":" << myRec.s
+                  << ":" << std::endl;
+      } else if (numResults == 5) {
+        std::cout << "..." << std::endl;
+      }
+    } catch (IndexScanCompletedException e) {
+      break;
+    }
+
+    numResults++;
+  }
+
+  if (numResults >= 5) {
+    std::cout << "Number of results: " << numResults << std::endl;
+  }
+  index->endScan();
+  std::cout << std::endl;
+
+  return numResults;
 }
