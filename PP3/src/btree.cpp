@@ -31,19 +31,6 @@ namespace badgerdb {
 // ##################################################################### //
 
 /**
- * Alloc a page in the buffer for a leaf node
- *
- * @param newPageId the page number for the new node
- * @return a pointer to the new leaf node
- */
-LeafNodeInt *BTreeIndex::allocLeafNode(PageId &newPageId) {
-  LeafNodeInt *newNode;
-  bufMgr->allocPage(file, newPageId, (Page *&)newNode);
-  newNode->level = -1;
-  return newNode;
-}
-
-/**
  * Alloca a page in the buffer for an internal node
  *
  * @param newPageId the page number for the new node
@@ -52,6 +39,19 @@ LeafNodeInt *BTreeIndex::allocLeafNode(PageId &newPageId) {
 NonLeafNodeInt *BTreeIndex::allocNonLeafNode(PageId &newPageId) {
   NonLeafNodeInt *newNode;
   bufMgr->allocPage(file, newPageId, (Page *&)newNode);
+  memset(newNode, 0, Page::SIZE);
+  return newNode;
+}
+
+/**
+ * Alloc a page in the buffer for a leaf node
+ *
+ * @param newPageId the page number for the new node
+ * @return a pointer to the new leaf node
+ */
+LeafNodeInt *BTreeIndex::allocLeafNode(PageId &newPageId) {
+  LeafNodeInt *newNode = (LeafNodeInt *)allocNonLeafNode(newPageId);
+  newNode->level = -1;
   return newNode;
 }
 
@@ -571,6 +571,7 @@ PageId BTreeIndex::insert(PageId origPageId, int key, RecordId rid,
 
   // write the page back
   bufMgr->unPinPage(file, origPageId, true);
+  bufMgr->unPinPage(file, newPageId, true);
 
   // return new page
   return newPageId;

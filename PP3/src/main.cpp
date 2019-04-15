@@ -239,7 +239,7 @@ void test5_noncontiguous_random() {
 void test6_contiguous_ascending_stress() {
   std::cout << "---------------------" << std::endl;
   std::cout << "test6_contiguous_ascending_stress" << std::endl;
-  createRelationForward(100000);
+  createRelationForward(350000);
   intTests();
   deleteIndexFile();
   deleteRelation();
@@ -248,7 +248,7 @@ void test6_contiguous_ascending_stress() {
 void test7_contiguous_descending_stress() {
   std::cout << "---------------------" << std::endl;
   std::cout << "test7_contiguous_descending_stress" << std::endl;
-  createRelationBackward(100000);
+  createRelationBackward(350000);
   intTests();
   deleteIndexFile();
   deleteRelation();
@@ -256,7 +256,7 @@ void test7_contiguous_descending_stress() {
 void test8_contiguous_random_stress() {
   std::cout << "---------------------" << std::endl;
   std::cout << "test8_contiguous_random_stress" << std::endl;
-  createRelationRandom(100000);
+  createRelationRandom(350000);
   intTests();
   deleteIndexFile();
   deleteRelation();
