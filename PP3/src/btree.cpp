@@ -104,8 +104,10 @@ BTreeIndex::BTreeIndex(const string &relationName, string &outIndexName,
     RecordId scanRid;
     while (1) {
       fscan.scanNext(scanRid);
-      const char *record = fscan.getRecord().c_str();
-      insertEntry(record + attrByteOffset, scanRid);
+      std::string recordStr = fscan.getRecord();
+      const char *record = recordStr.c_str();
+      int key = *((int *)(record + attrByteOffset));
+      insertEntry(&key, scanRid);
     }
   } catch (EndOfFileException e) {
   }
