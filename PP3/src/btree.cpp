@@ -325,7 +325,7 @@ void BTreeIndex::insertToLeafNode(LeafNodeInt *node, int i, int key,
  */
 void BTreeIndex::insertToNonLeafNode(NonLeafNodeInt *n, int i, int key,
                                      PageId pid) {
-  const size_t len = INTARRAYLEAFSIZE - i - 1;
+  const size_t len = INTARRAYNONLEAFSIZE - i - 1;
 
   // shift items to add space for the new element
   memmove(&n->keyArray[i + 1], &n->keyArray[i], len * sizeof(int));
