@@ -7,6 +7,7 @@
  */
 
 #include "btree.h"
+#include <algorithm>
 #include "exceptions/bad_index_info_exception.h"
 #include "exceptions/bad_opcodes_exception.h"
 #include "exceptions/bad_scanrange_exception.h"
@@ -175,12 +176,15 @@ bool BTreeIndex::isLeafNodeFull(LeafNodeInt *node) {
  * @return the number of records stored in the leaf node
  */
 int BTreeIndex::getLeafLen(LeafNodeInt *node) {
-  for (int i = 0; i < INTARRAYLEAFSIZE; i++) {
-    if (node->ridArray[i].page_number == 0 &&
-        node->ridArray[i].slot_number == 0)
-      return i;
-  }
-  return INTARRAYLEAFSIZE;
+  static auto comp = [](const RecordId &r1, const RecordId &r2) {
+    return r1.page_number > r2.page_number;
+  };
+  static RecordId emptyRecord{};
+
+  RecordId *start = node->ridArray;
+  RecordId *end = &node->ridArray[INTARRAYLEAFSIZE];
+
+  return lower_bound(start, end, emptyRecord, comp) - start;
 }
 
 /**
@@ -193,10 +197,10 @@ int BTreeIndex::getLeafLen(LeafNodeInt *node) {
  * @return the number of records stored in the internal node
  */
 int BTreeIndex::getNonLeafLen(NonLeafNodeInt *node) {
-  for (int i = 1; i <= INTARRAYNONLEAFSIZE; i++)
-    if (node->pageNoArray[i] == 0) return i;
-
-  return INTARRAYNONLEAFSIZE + 1;
+  static auto comp = [](const PageId &p1, const PageId &p2) { return p1 > p2; };
+  PageId *start = node->pageNoArray;
+  PageId *end = &node->pageNoArray[INTARRAYNONLEAFSIZE + 1];
+  return lower_bound(start, end, 0, comp) - start;
 }
 
 /**
@@ -218,16 +222,9 @@ int BTreeIndex::getNonLeafLen(NonLeafNodeInt *node) {
  */
 int BTreeIndex::findArrayIndex(const int *arr, int len, int key,
                                bool includeKey) {
-  if (includeKey) {
-    for (int i = 0; i < len; i++) {
-      if (arr[i] >= key) return i;
-    }
-  } else {
-    for (int i = 0; i < len; i++) {
-      if (arr[i] > key) return i;
-    }
-  }
-  return -1;
+  if (!includeKey) key++;
+  int result = lower_bound(arr, &arr[len], key) - arr;
+  return result >= len ? -1 : result;
 }
 
 /**
