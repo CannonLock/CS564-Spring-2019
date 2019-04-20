@@ -12,16 +12,24 @@
 	  <input type="text" class="form-control" id="itemID" name="itemID" />
 	</div>
 	<div class="form-group">
+	  <label for="itemCategory">Item Category</label>
+	  <input type="text" name="itemCategory" class="form-control" id="itemCategory" />
+	</div>
+	<div class="form-group">
+	  <label for="itemDescription">Description</label>
+	  <input type="text" name="itemDescription" class="form-control" id="itemDescription" />
+	</div>
+	<div class="form-group">
 	  <label for="userID">User ID</label>
 	  <input type="text" name="userID" class="form-control" id="userID" />
 	</div>
 	<div class="form-group">
-	  <label for="minPrice">Min Price</label>
-	  <input type="text" name="minPrice" class="form-control" id="minPrice" />
+		<label for="minPrice">Min Price</label>
+	  <input type="number" name="minPrice" class="form-control" id="minPrice" min="0" step="0.01"/>
 	</div>
 	<div class="form-group">
-	  <label for="maxPrice">Max Price</label>
-	  <input type="text" name="maxPrice" class="form-control" id="maxPrice" />
+		<label for="maxPrice">Max Price</label>
+	  <input type="number" name="maxPrice" class="form-control" id="maxPrice" min="0" step="0.01"/>
 	</div>
 	<div class="form-group">
 		<label for="status">Status &nbsp;&nbsp;</label>

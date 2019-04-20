@@ -52,8 +52,10 @@ def render_template(template_name, **context):
 
 urls = ('/currtime', 'curr_time',
         '/selecttime', 'select_time',
-        # TODO: add additional URLs here
-        # first parameter => URL, second parameter => class name
+        '/addbid', 'add_bid',
+        '/search', 'search',
+        '/timetable', 'time_table',
+        '/', 'search',
         )
 
 class curr_time:
@@ -66,7 +68,6 @@ class curr_time:
         return render_template('curr_time.html', time = current_time)
 
 class select_time:
-    # Aanother GET request, this time to the URL '/selecttime'
     def GET(self):
         return render_template('select_time.html')
 
@@ -82,17 +83,63 @@ class select_time:
         yyyy = post_params['yyyy']
         HH = post_params['HH']
         mm = post_params['mm']
-        ss = post_params['ss'];
+        ss = post_params['ss']
         enter_name = post_params['entername']
 
 
         selected_time = '%s-%s-%s %s:%s:%s' % (yyyy, MM, dd, HH, mm, ss)
         update_message = '(Hello, %s. Previously selected time was: %s.)' % (enter_name, selected_time)
-        # TODO: save the selected time as the current time in the database
-
+        try:
+            sqlitedb.setTime(string_to_time(selected_time))
+        except Exception as e:
+            update_message = 'Invalid Input'
         # Here, we assign `update_message' to `message', which means
         # we'll refer to it in our template as `message'
         return render_template('select_time.html', message = update_message)
+
+class add_bid:
+    def GET(self):
+        return render_template('add_bid.html')
+    # itemID: 123
+    # userID: 312
+    # price: 321
+    def POST(self):
+        post_params = web.input()
+        item_id = post_params['itemID']
+        user_id = post_params['userID']
+        price = post_params['price']
+
+        print('itemid: %s, userid: %s, price: %s\n' % (item_id, user_id, price))
+        
+        return render_template('add_bid.html')
+        
+class search:
+    def GET(self):
+        return render_template('search.html')
+
+    def POST(seft):
+        post_params = web.input()
+        item_id = post_params['itemID']
+        user_id = post_params['userID']
+        min_price = post_params['minPrice']
+        max_price = post_params['maxPrice']
+        status = post_params['status']
+        category = post_params['itemCategory']
+        description = post_params['itemDescription']
+        
+        if min_price != '' and max_price != '' and int(min_price) > int(max_price):
+            message = 'Max price can not be smaller than min price!'
+            return render_template('search.html', message = message)
+
+        search_result = sqlitedb.searchItem(item_id, category, description, user_id, min_price, max_price, status)
+
+        if len(search_result) < 1: 
+            return render_template('search.html', search_result = search_result, message = 'No result is found!')
+        
+        return render_template('search.html', search_result = search_result)
+
+
+
 
 ###########################################################################################
 ##########################DO NOT CHANGE ANYTHING BELOW THIS LINE!##########################
