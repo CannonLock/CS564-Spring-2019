@@ -56,6 +56,7 @@ urls = ('/currtime', 'curr_time',
         '/search', 'search',
         '/timetable', 'time_table',
         '/', 'search',
+        '/item', 'item'
         )
 
 class curr_time:
@@ -100,18 +101,16 @@ class select_time:
 class add_bid:
     def GET(self):
         return render_template('add_bid.html')
-    # itemID: 123
-    # userID: 312
-    # price: 321
+
     def POST(self):
         post_params = web.input()
         item_id = post_params['itemID']
         user_id = post_params['userID']
         price = post_params['price']
 
-        print('itemid: %s, userid: %s, price: %s\n' % (item_id, user_id, price))
+        sqlitedb.addBid(item_id, user_id, price)
         
-        return render_template('add_bid.html')
+        return render_template('add_bid.html', message = "success")
         
 class search:
     def GET(self):
@@ -127,7 +126,7 @@ class search:
         category = post_params['itemCategory']
         description = post_params['itemDescription']
         
-        if min_price != '' and max_price != '' and int(min_price) > int(max_price):
+        if min_price != '' and max_price != '' and float(min_price) > float(max_price):
             message = 'Max price can not be smaller than min price!'
             return render_template('search.html', message = message)
 
@@ -138,6 +137,28 @@ class search:
         
         return render_template('search.html', search_result = search_result)
 
+class item:
+    def GET(self):
+        id = web.input()['id']
+        item = sqlitedb.searchItem(id)[0]
+        bids = sqlitedb.getBids(id)
+        item['Category'] = ', '.join(sqlitedb.getCategory(id))
+        
+        # check status
+        cur_time = sqlitedb.getTime()
+        if cur_time < item['Started']:
+            item['Status'] = 'Not Started'
+        elif cur_time > item['Ends'] or (item['Buy_Price'] is not None and float(item['Currently']) >= float(item['Buy_Price'])):
+            item['Status'] = 'Close'
+        else:
+            item['Status'] = 'Open'
+
+        if len(bids) == 0 or item['Status'] is not 'Close': 
+            winner = [] 
+        else:
+            winner = max(bids, key=lambda bid: bid['Amount'])
+        
+        return render_template('item.html', item = item, bids = bids, winner = winner)
 
 
 

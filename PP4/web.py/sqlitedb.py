@@ -57,9 +57,7 @@ def query(query_string, vars = {}):
 #TODO: additional methods to interact with your database,
 # e.g. to update the current time
 
-def searchItem(item_id, category, description, user_id, min_price, max_price, status):
-    #TODO: status in {open, close, notStarted, all}
-
+def searchItem(item_id, category='', description='', user_id='', min_price='', max_price='', status=''):
     from_table = 'Items '
     where_cond = ' '
 
@@ -86,11 +84,14 @@ def searchItem(item_id, category, description, user_id, min_price, max_price, st
     if status == 'open':
         where_cond += 'Items.Started <= $time and Items.Ends >= $time and '
     elif status == 'close':
-        where_cond += 'Items.Ends <= $time and '
+        where_cond += '(Items.Ends <= $time or Items.Currently >= Items.Buy_Price) and '
     elif status == 'notStarted':
         where_cond += 'Items.Started >= $time and '
 
-    query_string = 'select * from ' + from_table + 'where' + where_cond + '1 == 1 LIMIT 10;'
+    column = ['ItemID', 'Name', 'Currently', 'First_Bid', 'Buy_Price', 'Number_of_Bids', 'Started', 'Ends', 'Seller_UserID', 'Description']
+    column = ['Items.' + x for x in column]
+    column = ", ".join(column)
+    query_string = 'select ' + column + ' from ' + from_table + 'where' + where_cond + '1 == 1 LIMIT 10;'
 
     vars = {
         'item_id': item_id, 
@@ -104,13 +105,68 @@ def searchItem(item_id, category, description, user_id, min_price, max_price, st
     result = query(query_string, vars)
     return result
 
-def addBid(user_id, product_id, price):
-    query_string = ''
-    result = query(query_string, {'itemID': item_id})
-    return
+def addBid(item_id, user_id, price):
+    # start error handling
+    
+    # check valid user
+    result = query('select * from Users where UserId == $user_id', {'user_id': user_id})
+    if len(result) == 0: 
+        print('invalid user id')
+        return False
+
+    # check Seller_UserID != user_id and valid item_id
+    result = query('select * from Items where ItemId == $item_id and Seller_UserId <> $user_id', {'item_id': item_id, 'user_id': user_id})
+    if len(result) == 0 :
+        print('No biddable item')
+        return False
+    
+    item = result[0]
+
+    # check start < current_time < end
+    current_time = getTime()
+    if item['Started'] > current_time or item['Ends'] < current_time:
+        print('Bid closed due to time')
+        return False
+    
+    # check buy_price > currently 
+    if item["Buy_Price"] != None and float(item["Buy_Price"]) <= float(item["Currently"]):
+        print('Bid closed since price reached')
+        return False
+    
+    # check price > currently
+    if float(price) <= float(item["Currently"]): 
+        print('Not higher bid')
+        return False
+
+    # end error handling
+
+    # start transaction
+    t = transaction()
+    try:
+        # Add to Bids
+        insert_bid = "insert into Bids values ($item_id, $user_id, $price, $current_time)"
+        db.query(insert_bid, {'item_id': item_id, 'user_id': user_id, 'price': price, 'current_time': current_time})
+    except Exception as e:
+        t.rollback()
+        print str(e)
+        return False
+    else:
+        t.commit()
+    # end transaction
+
+    return True
 
 def setTime(time): 
     query_string = 'update CurrentTime set Time = $currTime;'
     # query_string = 'select * from CurrentTime'
     db.query(query_string, {'currTime': time})
-    return
+    
+def getBids(item_id): 
+    query_string = 'select UserID, Amount, Time from Bids where ItemID = $item_id order by Time'
+    result = query(query_string, {'item_id': item_id})
+    return result
+
+def getCategory(item_id): 
+    query_string = 'select Category from Categories where ItemID = $item_id'
+    result = query(query_string, {'item_id': item_id})
+    return [elem['Category'] for elem in result]
