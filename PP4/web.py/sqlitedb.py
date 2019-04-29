@@ -145,7 +145,7 @@ def addBid(item_id, user_id, price):
         t.commit()
     # end transaction
 
-    return 'success'
+    return 'Success'
 
 def setTime(time): 
     query_string = 'update CurrentTime set Time = $currTime;'
