@@ -108,9 +108,9 @@ class add_bid:
         user_id = post_params['userID']
         price = post_params['price']
 
-        sqlitedb.addBid(item_id, user_id, price)
+        result = sqlitedb.addBid(item_id, user_id, price)
         
-        return render_template('add_bid.html', message = "success")
+        return render_template('add_bid.html', message = result)
         
 class search:
     def GET(self):

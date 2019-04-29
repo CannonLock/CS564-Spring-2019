@@ -39,7 +39,6 @@ def getTime():
 # Note: if the `result' list is empty (i.e. there are no items for a
 # a given ID), this will throw an Exception!
 def getItemById(item_id):
-    # TODO: rewrite this method to catch the Exception in case `result' is empty
     query_string = 'select * from Items where item_ID = $itemID'
     result = query(query_string, {'itemID': item_id})
     try:
@@ -54,7 +53,6 @@ def query(query_string, vars = {}):
 
 #####################END HELPER METHODS#####################
 
-#TODO: additional methods to interact with your database,
 # e.g. to update the current time
 
 def searchItem(item_id, category='', description='', user_id='', min_price='', max_price='', status=''):
@@ -107,36 +105,30 @@ def searchItem(item_id, category='', description='', user_id='', min_price='', m
 
 def addBid(item_id, user_id, price):
     # start error handling
-    
     # check valid user
     result = query('select * from Users where UserId == $user_id', {'user_id': user_id})
     if len(result) == 0: 
-        print('invalid user id')
-        return False
+        return 'Invalid user id'
 
     # check Seller_UserID != user_id and valid item_id
     result = query('select * from Items where ItemId == $item_id and Seller_UserId <> $user_id', {'item_id': item_id, 'user_id': user_id})
     if len(result) == 0 :
-        print('No biddable item')
-        return False
+        return 'No biddable item'
     
     item = result[0]
 
     # check start < current_time < end
     current_time = getTime()
     if item['Started'] > current_time or item['Ends'] < current_time:
-        print('Bid closed due to time')
-        return False
+        return 'Bid closed due to time'
     
     # check buy_price > currently 
     if item["Buy_Price"] != None and float(item["Buy_Price"]) <= float(item["Currently"]):
-        print('Bid closed since price reached')
-        return False
+        return 'Bid closed since price reached'
     
     # check price > currently
     if float(price) <= float(item["Currently"]): 
-        print('Not higher bid')
-        return False
+        return 'Not higher bid'
 
     # end error handling
 
@@ -148,13 +140,12 @@ def addBid(item_id, user_id, price):
         db.query(insert_bid, {'item_id': item_id, 'user_id': user_id, 'price': price, 'current_time': current_time})
     except Exception as e:
         t.rollback()
-        print str(e)
-        return False
+        return str(e) 
     else:
         t.commit()
     # end transaction
 
-    return True
+    return 'success'
 
 def setTime(time): 
     query_string = 'update CurrentTime set Time = $currTime;'
