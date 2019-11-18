@@ -1,21 +1,8 @@
 # CS 564 - Database Management Systems
 
-| Project            | Requirement                                                  | Code                   |
-| ------------------ | ------------------------------------------------------------ | ---------------------- |
-| PP1: ER Modeling & Schema Design | [Requirement](PP1 - ER Modeling & Schema Design/PP1.pdf) | [Code](PP1) |
-| PP2: SQL & Sampling Application | [Requirement](PP2/PP2.pdf) | [Code](PP2) |
-| PP3: B+ Tree Index Manager | [Requirement](PP3/PP3.pdfl) | [Code](PP3) |
-| PP4: Auction Base | [Requirement](PP4/PP4.pdf) | [Code](PP4) |
-
-
-
-
-
-
-
-
-
-
-
-
-
+| Project            | Assignment Description     | Code     | Report | 
+| ------------------ | ------------------------ | ---------------------- | ---------------- |
+| PP1: ER Modeling & Schema Design | [Assignment Description](PP1 - ER Modeling & Schema Design/PP1.pdf) | [Code](PP1 - ER Modeling & Schema Design) | [Report](PP1 - ER Modeling & Schema Design/design.pdf) | 
+| PP2: SQL & Sampling Application | [Assignment Description](PP2/PP2.pdf) | [Code](PP2) | [Report](PP2/readme.pdf) |
+| PP3: B+ Tree Index Manager | [Assignment Description](PP3/PP3.pdf) | [Code](PP3) | [Report](PP3/report.pdf) |
+| PP4: Auction Base | [Assignment Description](PP4/PP4.pdf) | [Code](PP4) | | 
